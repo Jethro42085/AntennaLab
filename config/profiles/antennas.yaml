@@ -1,0 +1,4 @@
+antennas:
+  - id: stock
+    name: RTL-SDR Stock Dipole
+    notes: Default bundled dipole

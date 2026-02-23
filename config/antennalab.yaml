@@ -1,0 +1,17 @@
+device:
+  kind: rtlsdr
+  sample_rate_hz: 2400000
+  gain_db: auto
+
+scan:
+  start_hz: 88000000
+  stop_hz: 108000000
+  bin_hz: 25000
+
+output:
+  scans_dir: data/scans
+  reports_dir: data/reports
+
+profiles:
+  antennas_file: config/profiles/antennas.yaml
+  locations_file: config/profiles/locations.yaml

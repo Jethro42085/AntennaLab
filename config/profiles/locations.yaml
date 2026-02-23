@@ -1,0 +1,4 @@
+locations:
+  - id: home
+    name: Home
+    notes: Default location
