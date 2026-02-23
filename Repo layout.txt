@@ -1,0 +1,51 @@
+AntennaLab/
+  README.md
+  pyproject.toml
+  .gitignore
+
+  PROJECT_OVERVIEW.md
+  PRODUCT_SPEC.md
+  ARCHITECTURE.md
+  FEATURE_ROADMAP.md
+  FOLDER_LAYOUT.md
+  TASKS.md
+
+  config/
+    antennalab.yaml
+    profiles/
+      antennas.yaml
+      locations.yaml
+
+  src/
+    antennalab/
+      __init__.py
+      cli.py
+      config.py
+
+      core/
+        __init__.py
+        plugins.py
+        registry.py
+        models.py
+
+      instruments/
+        __init__.py
+        rtlsdr.py
+        nanovna.py
+        tinysa.py
+
+      analysis/
+        __init__.py
+        spectrum.py
+
+      report/
+        __init__.py
+        export_csv.py
+        run_report.py
+
+  tests/
+    test_spectrum.py
+
+  data/
+    scans/
+    reports/
