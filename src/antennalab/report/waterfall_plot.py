@@ -4,7 +4,14 @@ import csv
 from pathlib import Path
 
 
-def plot_waterfall_csv(input_csv: str | Path, output_png: str | Path) -> Path:
+def plot_waterfall_csv(
+    input_csv: str | Path,
+    output_png: str | Path,
+    *,
+    cmap: str = "viridis",
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> Path:
     try:
         import matplotlib.pyplot as plt
         import numpy as np
@@ -48,7 +55,15 @@ def plot_waterfall_csv(input_csv: str | Path, output_png: str | Path) -> Path:
 
     plt.figure(figsize=(12, 5))
     extent = [freqs[0] / 1e6, freqs[-1] / 1e6, slices, 0]
-    plt.imshow(grid, aspect="auto", extent=extent, interpolation="nearest")
+    plt.imshow(
+        grid,
+        aspect="auto",
+        extent=extent,
+        interpolation="nearest",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+    )
     plt.colorbar(label="avg_db")
     plt.xlabel("Frequency (MHz)")
     plt.ylabel("Slice Index")

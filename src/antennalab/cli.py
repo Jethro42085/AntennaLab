@@ -225,7 +225,13 @@ def cmd_waterfall(args: argparse.Namespace) -> int:
 
 
 def cmd_plot_waterfall(args: argparse.Namespace) -> int:
-    output_path = plot_waterfall_csv(args.in_csv, args.out_png)
+    output_path = plot_waterfall_csv(
+        args.in_csv,
+        args.out_png,
+        cmap=args.cmap,
+        vmin=args.vmin,
+        vmax=args.vmax,
+    )
     print(f"Waterfall image: {output_path}")
     return 0
 
@@ -373,6 +379,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--out-png",
         default="data/reports/waterfall.png",
         help="Output PNG path",
+    )
+    waterfall_plot_parser.add_argument(
+        "--cmap",
+        default="viridis",
+        help="Matplotlib colormap (e.g., viridis, plasma, magma)",
+    )
+    waterfall_plot_parser.add_argument(
+        "--vmin",
+        type=float,
+        help="Lower bound for color scale",
+    )
+    waterfall_plot_parser.add_argument(
+        "--vmax",
+        type=float,
+        help="Upper bound for color scale",
     )
     waterfall_plot_parser.set_defaults(func=cmd_plot_waterfall)
 

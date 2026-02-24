@@ -73,3 +73,8 @@ Plot waterfall CSV:
 ```bash
 antennalab plot-waterfall --in-csv data/waterfalls/waterfall.csv --out-png data/reports/waterfall.png
 ```
+
+Customize waterfall colormap:
+```bash
+antennalab plot-waterfall --in-csv data/waterfalls/waterfall.csv --out-png data/reports/waterfall.png --cmap plasma --vmin -80 --vmax -20
+```
