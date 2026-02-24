@@ -2,8 +2,12 @@ device:
   kind: rtlsdr
   sample_rate_hz: 2400000
   gain_db: auto
+  fft_size: 4096
+  step_hz: null
+  missing_db: -120
 
 scan:
+  mode: real
   start_hz: 88000000
   stop_hz: 108000000
   bin_hz: 25000

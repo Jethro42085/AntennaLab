@@ -44,6 +44,7 @@ def cmd_health(args: argparse.Namespace) -> int:
 def cmd_scan(args: argparse.Namespace) -> int:
     config, _ = load_config(args.config)
     scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
+    device_cfg = config.get("device", {}) if isinstance(config, dict) else {}
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
 
     start_hz = args.start_hz or scan_cfg.get("start_hz")
@@ -52,6 +53,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
     if start_hz is None or stop_hz is None or bin_hz is None:
         raise SystemExit("scan settings missing; provide --start-hz/--stop-hz/--bin-hz")
 
+    mode = args.mode or scan_cfg.get("mode", "real")
+
     scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
     reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
 
@@ -59,14 +62,34 @@ def cmd_scan(args: argparse.Namespace) -> int:
     out_json = Path(args.out_json) if args.out_json else None
 
     plugin = RTLSDRPlugin()
-    scan = plugin.scan_simulated(
-        start_hz=float(start_hz),
-        stop_hz=float(stop_hz),
-        bin_hz=float(bin_hz),
-        antenna_tag=args.antenna,
-        location_tag=args.location,
-        seed=args.seed,
-    )
+    if mode == "sim":
+        scan = plugin.scan_simulated(
+            start_hz=float(start_hz),
+            stop_hz=float(stop_hz),
+            bin_hz=float(bin_hz),
+            antenna_tag=args.antenna,
+            location_tag=args.location,
+            seed=args.seed,
+        )
+    else:
+        sample_rate_hz = args.sample_rate or device_cfg.get("sample_rate_hz", 2_400_000)
+        gain_db = args.gain if args.gain is not None else device_cfg.get("gain_db", "auto")
+        fft_size = args.fft_size or device_cfg.get("fft_size", 4096)
+        step_hz = args.step_hz if args.step_hz is not None else device_cfg.get("step_hz")
+        missing_db = device_cfg.get("missing_db", -120.0)
+
+        scan = plugin.scan_real(
+            start_hz=float(start_hz),
+            stop_hz=float(stop_hz),
+            bin_hz=float(bin_hz),
+            sample_rate_hz=float(sample_rate_hz),
+            gain_db=gain_db,
+            fft_size=int(fft_size),
+            step_hz=float(step_hz) if step_hz is not None else None,
+            missing_db=float(missing_db),
+            antenna_tag=args.antenna,
+            location_tag=args.location,
+        )
 
     write_scan_csv(scan, out_csv)
     print(f"Scan CSV: {out_csv}")
@@ -137,7 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
     health_parser = subparsers.add_parser("health", help="Run health checks")
     health_parser.set_defaults(func=cmd_health)
 
-    scan_parser = subparsers.add_parser("scan", help="Run a simulated band scan")
+    scan_parser = subparsers.add_parser("scan", help="Run a band scan")
+    scan_parser.add_argument("--mode", choices=["real", "sim"], help="Scan mode")
     scan_parser.add_argument("--start-hz", type=float, help="Scan start frequency (Hz)")
     scan_parser.add_argument("--stop-hz", type=float, help="Scan stop frequency (Hz)")
     scan_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
@@ -146,6 +170,10 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--antenna", help="Antenna profile tag")
     scan_parser.add_argument("--location", help="Location profile tag")
     scan_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
+    scan_parser.add_argument("--sample-rate", type=float, help="RTL-SDR sample rate (Hz)")
+    scan_parser.add_argument("--gain", help="RTL-SDR gain (auto or dB)")
+    scan_parser.add_argument("--fft-size", type=int, help="FFT size per sweep")
+    scan_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
     scan_parser.set_defaults(func=cmd_scan)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")

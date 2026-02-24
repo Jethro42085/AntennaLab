@@ -12,3 +12,18 @@ pip install -e .
 
 antennalab info
 antennalab health
+
+## RTL-SDR (Real Mode)
+Requires RTL-SDR drivers plus Python deps:
+- numpy
+- pyrtlsdr
+
+Example real scan:
+```bash
+antennalab scan --mode real
+```
+
+Simulated scan (no hardware):
+```bash
+antennalab scan --mode sim --seed 42
+```
