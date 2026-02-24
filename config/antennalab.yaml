@@ -19,6 +19,11 @@ output:
   reports_dir: data/reports
   waterfalls_dir: data/waterfalls
 
+waterfall_plot:
+  cmap: viridis
+  vmin: null
+  vmax: null
+
 profiles:
   antennas_file: config/profiles/antennas.yaml
   locations_file: config/profiles/locations.yaml

@@ -78,3 +78,12 @@ Customize waterfall colormap:
 ```bash
 antennalab plot-waterfall --in-csv data/waterfalls/waterfall.csv --out-png data/reports/waterfall.png --cmap plasma --vmin -80 --vmax -20
 ```
+
+Set default waterfall colors in config:
+```yaml
+waterfall_plot:
+  cmap: viridis
+  vmin: -80
+  vmax: -20
+```
+Command-line flags override config.

@@ -225,12 +225,18 @@ def cmd_waterfall(args: argparse.Namespace) -> int:
 
 
 def cmd_plot_waterfall(args: argparse.Namespace) -> int:
+    config, _ = load_config(args.config)
+    plot_cfg = config.get("waterfall_plot", {}) if isinstance(config, dict) else {}
+    cmap = args.cmap if args.cmap is not None else plot_cfg.get("cmap", "viridis")
+    vmin = args.vmin if args.vmin is not None else plot_cfg.get("vmin")
+    vmax = args.vmax if args.vmax is not None else plot_cfg.get("vmax")
+
     output_path = plot_waterfall_csv(
         args.in_csv,
         args.out_png,
-        cmap=args.cmap,
-        vmin=args.vmin,
-        vmax=args.vmax,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
     )
     print(f"Waterfall image: {output_path}")
     return 0
@@ -382,7 +388,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     waterfall_plot_parser.add_argument(
         "--cmap",
-        default="viridis",
         help="Matplotlib colormap (e.g., viridis, plasma, magma)",
     )
     waterfall_plot_parser.add_argument(
