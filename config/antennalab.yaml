@@ -17,6 +17,7 @@ scan:
 output:
   scans_dir: data/scans
   reports_dir: data/reports
+  waterfalls_dir: data/waterfalls
 
 profiles:
   antennas_file: config/profiles/antennas.yaml

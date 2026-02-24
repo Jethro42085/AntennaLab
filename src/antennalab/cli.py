@@ -8,6 +8,7 @@ from antennalab.analysis.alerts import AlertEngine, load_alert_rules, write_aler
 from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
+from antennalab.analysis.waterfall import WaterfallSettings, run_waterfall
 from antennalab.config import load_config
 from antennalab.core.models import SweepStatsBin
 from antennalab.core.registry import get_instrument_plugins
@@ -135,6 +136,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
     write_scan_csv(scan, out_csv)
     print(f"Scan CSV: {out_csv}")
 
+    sweep_stats_path = getattr(args, "sweep_stats_csv", None)
     if sweep_stats is not None and sweep_stats_path:
         out_stats = Path(sweep_stats_path)
         write_sweep_stats_csv(sweep_stats, out_stats)
@@ -172,6 +174,52 @@ def cmd_baseline_apply(args: argparse.Namespace) -> int:
 def cmd_plot_scan(args: argparse.Namespace) -> int:
     output_path = plot_scan_csv(args.in_csv, args.out_png)
     print(f"Plot image: {output_path}")
+    return 0
+
+
+def cmd_waterfall(args: argparse.Namespace) -> int:
+    config, _ = load_config(args.config)
+    scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
+    device_cfg = config.get("device", {}) if isinstance(config, dict) else {}
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+
+    start_hz = args.start_hz or scan_cfg.get("start_hz")
+    stop_hz = args.stop_hz or scan_cfg.get("stop_hz")
+    bin_hz = args.bin_hz or scan_cfg.get("bin_hz")
+    if start_hz is None or stop_hz is None or bin_hz is None:
+        raise SystemExit("scan settings missing; provide --start-hz/--stop-hz/--bin-hz")
+
+    mode = args.mode or scan_cfg.get("mode", "real")
+    waterfalls_dir = Path(output_cfg.get("waterfalls_dir", "data/waterfalls"))
+    out_csv = Path(args.out_csv) if args.out_csv else waterfalls_dir / "waterfall.csv"
+
+    sample_rate_hz = args.sample_rate or device_cfg.get("sample_rate_hz", 2_400_000)
+    gain_db = args.gain if args.gain is not None else device_cfg.get("gain_db", "auto")
+    fft_size = args.fft_size or device_cfg.get("fft_size", 4096)
+    step_hz = args.step_hz if args.step_hz is not None else device_cfg.get("step_hz")
+    sweeps = args.sweeps or device_cfg.get("sweeps", 3)
+    dwell_ms = args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)
+    missing_db = device_cfg.get("missing_db", -120.0)
+
+    settings = WaterfallSettings(
+        mode=mode,
+        start_hz=float(start_hz),
+        stop_hz=float(stop_hz),
+        bin_hz=float(bin_hz),
+        slices=int(args.slices),
+        interval_ms=int(args.interval_ms),
+        sample_rate_hz=float(sample_rate_hz),
+        gain_db=gain_db,
+        fft_size=int(fft_size),
+        step_hz=float(step_hz) if step_hz is not None else None,
+        sweeps=int(sweeps),
+        dwell_ms=int(dwell_ms),
+        missing_db=float(missing_db),
+        seed=args.seed,
+    )
+
+    out_path = run_waterfall(settings, out_csv)
+    print(f"Waterfall CSV: {out_path}")
     return 0
 
 
@@ -287,6 +335,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output PNG path",
     )
     plot_parser.set_defaults(func=cmd_plot_scan)
+
+    waterfall_parser = subparsers.add_parser("waterfall", help="Capture a waterfall CSV")
+    waterfall_parser.add_argument("--mode", choices=["real", "sim"], help="Scan mode")
+    waterfall_parser.add_argument("--start-hz", type=float, help="Scan start frequency (Hz)")
+    waterfall_parser.add_argument("--stop-hz", type=float, help="Scan stop frequency (Hz)")
+    waterfall_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
+    waterfall_parser.add_argument("--slices", type=int, default=20, help="Number of time slices")
+    waterfall_parser.add_argument(
+        "--interval-ms",
+        type=int,
+        default=0,
+        help="Delay between slices (ms)",
+    )
+    waterfall_parser.add_argument("--out-csv", help="Output waterfall CSV path")
+    waterfall_parser.add_argument("--seed", type=int, help="Random seed for simulated mode")
+    waterfall_parser.add_argument("--sample-rate", type=float, help="RTL-SDR sample rate (Hz)")
+    waterfall_parser.add_argument("--gain", help="RTL-SDR gain (auto or dB)")
+    waterfall_parser.add_argument("--fft-size", type=int, help="FFT size per sweep")
+    waterfall_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
+    waterfall_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
+    waterfall_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
+    waterfall_parser.set_defaults(func=cmd_waterfall)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")

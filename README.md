@@ -62,3 +62,9 @@ Plot a scan CSV to PNG:
 ```bash
 antennalab plot-scan --in-csv data/scans/scan.csv --out-png data/reports/scan.png
 ```
+
+Waterfall capture:
+```bash
+antennalab waterfall --mode sim --slices 10 --interval-ms 100
+```
+Output CSV columns: `timestamp,slice_index,freq_hz,avg_db,max_db`.
