@@ -94,3 +94,10 @@ Recommended colormaps:
 - magma
 - inferno
 - cividis
+
+Bookmarks:
+```bash
+antennalab bookmarks add --freq-hz 100000000 --label "FM 100" --notes "local"
+antennalab bookmarks list
+antennalab bookmarks remove --freq-hz 100000000
+```

@@ -9,6 +9,7 @@ from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.analysis.waterfall import WaterfallSettings, run_waterfall
+from antennalab.bookmarks import Bookmark, add_bookmark, load_bookmarks, remove_bookmark
 from antennalab.config import load_config
 from antennalab.core.models import SweepStatsBin
 from antennalab.core.registry import get_instrument_plugins
@@ -242,39 +243,29 @@ def cmd_plot_waterfall(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_noise_floor(args: argparse.Namespace) -> int:
-    config, _ = load_config(args.config)
-    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
-    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
-
-    out_csv = Path(args.out_csv) if args.out_csv else reports_dir / "noise_floor.csv"
-    estimate_noise_floor(
-        scan_csv=args.in_csv,
-        out_csv=out_csv,
-        strategy=args.strategy,
-    )
-    print(f"Noise floor CSV: {out_csv}")
+def cmd_bookmark_add(args: argparse.Namespace) -> int:
+    bookmark = Bookmark(freq_hz=float(args.freq_hz), label=args.label or "", notes=args.notes or "")
+    add_bookmark(args.file, bookmark)
+    print(f"Bookmark added: {args.freq_hz} Hz")
     return 0
 
 
-def cmd_compare(args: argparse.Namespace) -> int:
-    config, _ = load_config(args.config)
-    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
-    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
-
-    out_csv = Path(args.out_csv) if args.out_csv else reports_dir / "compare.csv"
-    compare_to_csv(args.scan_a, args.scan_b, out_csv)
-    print(f"Compare CSV: {out_csv}")
+def cmd_bookmark_list(args: argparse.Namespace) -> int:
+    bookmarks = load_bookmarks(args.file)
+    if not bookmarks:
+        print("No bookmarks found")
+        return 0
+    for bm in bookmarks:
+        label = f" [{bm.label}]" if bm.label else ""
+        notes = f" - {bm.notes}" if bm.notes else ""
+        print(f"{bm.freq_hz:.0f} Hz{label}{notes}")
     return 0
 
 
-def cmd_alerts(args: argparse.Namespace) -> int:
-    output_path = Path(args.out_log)
-    rules = load_alert_rules(args.rules)
-    engine = AlertEngine(rules)
-    hits = engine.evaluate(args.scan_csv)
-    write_alert_hits(hits, output_path)
-    print(f"Alert log: {output_path} ({len(hits)} hits)")
+def cmd_bookmark_remove(args: argparse.Namespace) -> int:
+    freq_hz = float(args.freq_hz) if args.freq_hz is not None else None
+    _, removed = remove_bookmark(args.file, freq_hz=freq_hz, label=args.label)
+    print(f"Removed {removed} bookmark(s)")
     return 0
 
 
@@ -401,6 +392,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Upper bound for color scale",
     )
     waterfall_plot_parser.set_defaults(func=cmd_plot_waterfall)
+
+    bookmarks_parser = subparsers.add_parser("bookmarks", help="Manage frequency bookmarks")
+    bookmarks_sub = bookmarks_parser.add_subparsers(dest="bookmarks_cmd", required=True)
+
+    bookmarks_add = bookmarks_sub.add_parser("add", help="Add a bookmark")
+    bookmarks_add.add_argument("--freq-hz", required=True, type=float, help="Frequency in Hz")
+    bookmarks_add.add_argument("--label", help="Short label")
+    bookmarks_add.add_argument("--notes", help="Notes")
+    bookmarks_add.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_add.set_defaults(func=cmd_bookmark_add)
+
+    bookmarks_list = bookmarks_sub.add_parser("list", help="List bookmarks")
+    bookmarks_list.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_list.set_defaults(func=cmd_bookmark_list)
+
+    bookmarks_remove = bookmarks_sub.add_parser("remove", help="Remove bookmarks")
+    bookmarks_remove.add_argument("--freq-hz", type=float, help="Frequency in Hz")
+    bookmarks_remove.add_argument("--label", help="Label match")
+    bookmarks_remove.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_remove.set_defaults(func=cmd_bookmark_remove)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")
