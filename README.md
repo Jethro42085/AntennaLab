@@ -134,3 +134,8 @@ Monitor (repeated scans):
 antennalab monitor --mode sim --interval-sec 5 --iterations 3 --session quick
 ```
 Outputs go to `data/reports/monitor_<session>/`.
+
+Monitor with report pack:
+```bash
+antennalab monitor --mode sim --interval-sec 5 --iterations 3 --session quick --report-pack
+```

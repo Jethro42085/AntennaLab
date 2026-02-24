@@ -448,6 +448,15 @@ def cmd_monitor(args: argparse.Namespace) -> int:
 
     summary_path = run_monitor(settings, out_dir=out_dir)
     print(f"Monitor summary: {summary_path}")
+    if args.report_pack:
+        pack_dir, copied = build_report_pack(
+            session_name=args.report_pack_session or f"{session}_pack",
+            scans_dir=out_dir / "scans",
+            reports_dir=out_dir / "reports",
+            waterfalls_dir=out_dir / "waterfalls",
+            out_dir=out_dir,
+        )
+        print(f"Monitor report pack: {pack_dir} ({copied} file(s) copied)")
     return 0
 
 
@@ -731,6 +740,15 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
     monitor_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
     monitor_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
+    monitor_parser.add_argument(
+        "--report-pack",
+        action="store_true",
+        help="Create a report pack in the monitor folder after completion",
+    )
+    monitor_parser.add_argument(
+        "--report-pack-session",
+        help="Override report pack session name",
+    )
     monitor_parser.set_defaults(func=cmd_monitor)
 
     return parser
