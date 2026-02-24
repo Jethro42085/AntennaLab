@@ -53,6 +53,7 @@ def write_report_pack_html(pack_dir: str | Path) -> Path:
 
     html += [
         "  <h3>Files</h3>",
+        "  <p style=\"color:#666;font-size:12px\">Only generated files are listed.</p>",
         "  <ul>",
     ]
 
