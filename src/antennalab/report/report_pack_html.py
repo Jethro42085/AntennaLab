@@ -62,10 +62,24 @@ def write_report_pack_html(pack_dir: str | Path) -> Path:
         html.append("    <li><a href=\"scan_report.json\">scan_report.json</a></li>")
     if (pack_path / "scan.csv").exists():
         html.append("    <li><a href=\"scan.csv\">scan.csv</a></li>")
+    if (pack_path / "scan_adjusted.csv").exists():
+        html.append("    <li><a href=\"scan_adjusted.csv\">scan_adjusted.csv</a></li>")
+    if (pack_path / "baseline.csv").exists():
+        html.append("    <li><a href=\"baseline.csv\">baseline.csv</a></li>")
+    if (pack_path / "noise_floor.csv").exists():
+        html.append("    <li><a href=\"noise_floor.csv\">noise_floor.csv</a></li>")
+    if (pack_path / "compare.csv").exists():
+        html.append("    <li><a href=\"compare.csv\">compare.csv</a></li>")
+    if (pack_path / "alerts.csv").exists():
+        html.append("    <li><a href=\"alerts.csv\">alerts.csv</a></li>")
+    if (pack_path / "sweep_stats.csv").exists():
+        html.append("    <li><a href=\"sweep_stats.csv\">sweep_stats.csv</a></li>")
     if (pack_path / "waterfall.csv").exists():
         html.append("    <li><a href=\"waterfall.csv\">waterfall.csv</a></li>")
     if waterfall_html.exists():
         html.append(f"    <li><a href=\"{rel(waterfall_html)}\">waterfall.html</a></li>")
+    if (pack_path / "bookmarks.json").exists():
+        html.append("    <li><a href=\"bookmarks.json\">bookmarks.json</a></li>")
 
     html += [
         "  </ul>",
