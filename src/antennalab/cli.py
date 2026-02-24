@@ -10,6 +10,7 @@ from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.calibration_profiles import (
     BaselineProfile,
     get_profile,
+    load_profiles,
     upsert_profile,
 )
 from antennalab.analysis.compare import compare_to_csv
