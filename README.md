@@ -128,3 +128,9 @@ antennalab scan --bookmarks-file config/bookmarks.csv
 Report pack summary includes bookmark matches (if present in scan_report.json).
 
 Report packs now include a `README.txt` with a quick file list and tip.
+
+Monitor (repeated scans):
+```bash
+antennalab monitor --mode sim --interval-sec 5 --iterations 3 --session quick
+```
+Outputs go to `data/reports/monitor_<session>/`.

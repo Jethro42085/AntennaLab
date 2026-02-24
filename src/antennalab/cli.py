@@ -7,6 +7,7 @@ from antennalab import __version__
 from antennalab.analysis.alerts import AlertEngine, load_alert_rules, write_alert_hits
 from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
+from antennalab.analysis.monitor import MonitorSettings, run_monitor
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.analysis.waterfall import WaterfallSettings, run_waterfall
 from antennalab.bookmarks import (
@@ -62,6 +63,15 @@ def _resolve_path(base: Path, path: Path) -> Path:
     return path if path.is_absolute() else (base / path)
 
 
+def _resolve_base_dir(config_path: Path | None) -> Path:
+    if config_path:
+        base_dir = config_path.parent
+        if base_dir.name == "config":
+            base_dir = base_dir.parent
+        return base_dir
+    return Path.cwd()
+
+
 def cmd_scan(args: argparse.Namespace) -> int:
     config, config_path = load_config(args.config)
     scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
@@ -76,11 +86,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     mode = args.mode or scan_cfg.get("mode", "real")
 
-    base_dir = Path.cwd()
-    if config_path:
-        base_dir = config_path.parent
-        if base_dir.name == "config":
-            base_dir = base_dir.parent
+    base_dir = _resolve_base_dir(config_path)
 
     scans_dir = _resolve_path(base_dir, Path(output_cfg.get("scans_dir", "data/scans")))
     reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
@@ -376,12 +382,7 @@ def cmd_report_pack(args: argparse.Namespace) -> int:
     config, config_path = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
 
-    if config_path:
-        base_dir = config_path.parent
-        if base_dir.name == "config":
-            base_dir = base_dir.parent
-    else:
-        base_dir = Path.cwd()
+    base_dir = _resolve_base_dir(config_path)
 
     scans_dir = _resolve_path(base_dir, Path(output_cfg.get("scans_dir", "data/scans")))
     reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
@@ -398,6 +399,55 @@ def cmd_report_pack(args: argparse.Namespace) -> int:
     print(f"Report pack: {pack_dir} ({copied} file(s) copied)")
     if copied == 0:
         print("Warning: report pack is empty. Run scans or plots first.")
+    return 0
+
+
+def cmd_monitor(args: argparse.Namespace) -> int:
+    config, config_path = load_config(args.config)
+    scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
+    device_cfg = config.get("device", {}) if isinstance(config, dict) else {}
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+
+    start_hz = args.start_hz or scan_cfg.get("start_hz")
+    stop_hz = args.stop_hz or scan_cfg.get("stop_hz")
+    bin_hz = args.bin_hz or scan_cfg.get("bin_hz")
+    if start_hz is None or stop_hz is None or bin_hz is None:
+        raise SystemExit("scan settings missing; provide --start-hz/--stop-hz/--bin-hz")
+
+    mode = args.mode or scan_cfg.get("mode", "real")
+
+    interval_sec = int(args.interval_sec)
+    if args.duration_min is not None:
+        iterations = max(1, int((args.duration_min * 60) // interval_sec))
+    else:
+        iterations = int(args.iterations)
+
+    base_dir = _resolve_base_dir(config_path)
+    reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
+
+    session = args.session or "monitor"
+    out_dir = reports_dir / f"monitor_{session}"
+
+    settings = MonitorSettings(
+        mode=mode,
+        start_hz=float(start_hz),
+        stop_hz=float(stop_hz),
+        bin_hz=float(bin_hz),
+        sample_rate_hz=float(args.sample_rate or device_cfg.get("sample_rate_hz", 2_400_000)),
+        gain_db=args.gain if args.gain is not None else device_cfg.get("gain_db", "auto"),
+        fft_size=int(args.fft_size or device_cfg.get("fft_size", 4096)),
+        step_hz=float(args.step_hz) if args.step_hz is not None else device_cfg.get("step_hz"),
+        sweeps=int(args.sweeps or device_cfg.get("sweeps", 3)),
+        dwell_ms=int(args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)),
+        missing_db=float(device_cfg.get("missing_db", -120.0)),
+        interval_sec=interval_sec,
+        iterations=iterations,
+        seed=args.seed,
+        bookmarks_file=Path(args.bookmarks_file) if args.bookmarks_file else None,
+    )
+
+    summary_path = run_monitor(settings, out_dir=out_dir)
+    print(f"Monitor summary: {summary_path}")
     return 0
 
 
@@ -661,6 +711,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output base directory (default: reports dir)",
     )
     report_pack_parser.set_defaults(func=cmd_report_pack)
+
+    monitor_parser = subparsers.add_parser(
+        "monitor", help="Run repeated scans over time"
+    )
+    monitor_parser.add_argument("--mode", choices=["real", "sim"], help="Scan mode")
+    monitor_parser.add_argument("--start-hz", type=float, help="Scan start frequency (Hz)")
+    monitor_parser.add_argument("--stop-hz", type=float, help="Scan stop frequency (Hz)")
+    monitor_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
+    monitor_parser.add_argument("--interval-sec", type=int, default=60, help="Interval seconds")
+    monitor_parser.add_argument("--iterations", type=int, default=10, help="Number of scans")
+    monitor_parser.add_argument("--duration-min", type=int, help="Total duration in minutes")
+    monitor_parser.add_argument("--session", help="Session name")
+    monitor_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
+    monitor_parser.add_argument("--bookmarks-file", default="config/bookmarks.csv", help="Bookmarks CSV file")
+    monitor_parser.add_argument("--sample-rate", type=float, help="RTL-SDR sample rate (Hz)")
+    monitor_parser.add_argument("--gain", help="RTL-SDR gain (auto or dB)")
+    monitor_parser.add_argument("--fft-size", type=int, help="FFT size per sweep")
+    monitor_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
+    monitor_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
+    monitor_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
+    monitor_parser.set_defaults(func=cmd_monitor)
 
     return parser
 
