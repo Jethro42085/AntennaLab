@@ -42,3 +42,8 @@ antennalab scan --mode real --out-csv data/scans/baseline.csv
 antennalab scan --mode real --baseline-csv data/scans/baseline.csv
 ```
 This subtracts baseline avg power per bin from avg/max.
+
+Apply baseline to an existing scan file:
+```bash
+antennalab baseline-apply --scan-csv data/scans/scan.csv --baseline-csv data/scans/baseline.csv --out-csv data/scans/scan_adjusted.csv
+```

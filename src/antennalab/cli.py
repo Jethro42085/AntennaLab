@@ -11,7 +11,7 @@ from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
 from antennalab.core.registry import get_instrument_plugins
 from antennalab.instruments.rtlsdr import RTLSDRPlugin
-from antennalab.report.export_csv import write_scan_csv
+from antennalab.report.export_csv import scan_from_csv, write_scan_csv
 from antennalab.report.run_report import write_run_report
 
 
@@ -114,6 +114,15 @@ def cmd_scan(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_apply(args: argparse.Namespace) -> int:
+    scan = scan_from_csv(args.scan_csv)
+    baseline = load_baseline(args.baseline_csv)
+    adjusted = apply_baseline(scan, baseline)
+    write_scan_csv(adjusted, args.out_csv)
+    print(f"Baseline-adjusted CSV: {args.out_csv}")
+    return 0
+
+
 def cmd_noise_floor(args: argparse.Namespace) -> int:
     config, _ = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
@@ -187,6 +196,14 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
     scan_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
     scan_parser.set_defaults(func=cmd_scan)
+
+    baseline_parser = subparsers.add_parser(
+        "baseline-apply", help="Apply baseline to an existing scan CSV"
+    )
+    baseline_parser.add_argument("--scan-csv", required=True, help="Input scan CSV")
+    baseline_parser.add_argument("--baseline-csv", required=True, help="Baseline CSV")
+    baseline_parser.add_argument("--out-csv", required=True, help="Output CSV")
+    baseline_parser.set_defaults(func=cmd_baseline_apply)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")

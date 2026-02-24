@@ -90,6 +90,19 @@ def read_scan_csv(path: str | Path) -> tuple[ScanMeta, list[ScanBin]]:
     return meta, bins
 
 
+def scan_from_csv(path: str | Path) -> ScanResult:
+    meta, bins = read_scan_csv(path)
+    return ScanResult(
+        timestamp=meta.timestamp,
+        start_hz=meta.start_hz,
+        stop_hz=meta.stop_hz,
+        bin_hz=meta.bin_hz,
+        bins=tuple(bins),
+        antenna_tag=meta.antenna_tag,
+        location_tag=meta.location_tag,
+    )
+
+
 def write_noise_floor_csv(
     result: "NoiseFloorResult",
     path: str | Path,
