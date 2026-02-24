@@ -58,3 +58,12 @@ def get_profile(path: str | Path, tag: str) -> BaselineProfile | None:
         if profile.tag == tag:
             return profile
     return None
+
+
+def remove_profile(path: str | Path, tag: str) -> bool:
+    profiles = load_profiles(path)
+    remaining = [p for p in profiles if p.tag != tag]
+    if len(remaining) == len(profiles):
+        return False
+    save_profiles(path, remaining)
+    return True

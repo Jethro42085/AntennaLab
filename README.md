@@ -151,3 +151,8 @@ List baseline profiles:
 ```bash
 antennalab baseline-list
 ```
+
+Remove a baseline profile:
+```bash
+antennalab baseline-remove --tag night
+```

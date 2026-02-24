@@ -11,6 +11,7 @@ from antennalab.analysis.calibration_profiles import (
     BaselineProfile,
     get_profile,
     load_profiles,
+    remove_profile,
     upsert_profile,
 )
 from antennalab.analysis.compare import compare_to_csv
@@ -243,6 +244,16 @@ def cmd_baseline_list(args: argparse.Namespace) -> int:
         notes = f" - {profile.notes}" if profile.notes else ""
         print(f"{profile.tag}: {profile.csv_path}{notes}")
     return 0
+
+
+def cmd_baseline_remove(args: argparse.Namespace) -> int:
+    base_dir = _resolve_base_dir(load_config(args.config)[1])
+    removed = remove_profile(_profiles_path(base_dir), args.tag)
+    if removed:
+        print(f"Baseline tag removed: {args.tag}")
+        return 0
+    print(f"Baseline tag not found: {args.tag}")
+    return 1
 
 
 def cmd_baseline_apply(args: argparse.Namespace) -> int:
@@ -578,6 +589,12 @@ def build_parser() -> argparse.ArgumentParser:
         "baseline-list", help="List baseline profiles"
     )
     baseline_list_parser.set_defaults(func=cmd_baseline_list)
+
+    baseline_remove_parser = subparsers.add_parser(
+        "baseline-remove", help="Remove a baseline profile"
+    )
+    baseline_remove_parser.add_argument("--tag", required=True, help="Tag name")
+    baseline_remove_parser.set_defaults(func=cmd_baseline_remove)
 
     baseline_parser = subparsers.add_parser(
         "baseline-apply", help="Apply baseline to an existing scan CSV"
