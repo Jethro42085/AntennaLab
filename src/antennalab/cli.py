@@ -351,14 +351,19 @@ def cmd_alerts(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_report_pack(args: argparse.Namespace) -> int:
-    config, _ = load_config(args.config)
-    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+def _resolve_path(base: Path, path: Path) -> Path:
+    return path if path.is_absolute() else (base / path)
 
-    scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
-    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
-    waterfalls_dir = Path(output_cfg.get("waterfalls_dir", "data/waterfalls"))
-    out_dir = Path(args.out_dir) if args.out_dir else reports_dir
+
+def cmd_report_pack(args: argparse.Namespace) -> int:
+    config, config_path = load_config(args.config)
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+    base_dir = config_path.parent if config_path else Path.cwd()
+
+    scans_dir = _resolve_path(base_dir, Path(output_cfg.get("scans_dir", "data/scans")))
+    reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
+    waterfalls_dir = _resolve_path(base_dir, Path(output_cfg.get("waterfalls_dir", "data/waterfalls")))
+    out_dir = _resolve_path(base_dir, Path(args.out_dir)) if args.out_dir else reports_dir
 
     pack_dir = build_report_pack(
         session_name=args.session,
