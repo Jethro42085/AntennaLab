@@ -24,6 +24,7 @@ from antennalab.core.registry import get_instrument_plugins
 from antennalab.instruments.rtlsdr import RTLSDRPlugin
 from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sweep_stats_csv
 from antennalab.report.plot import plot_scan_csv
+from antennalab.report.report_pack import build_report_pack
 from antennalab.report.run_report import write_run_report
 from antennalab.report.waterfall_plot import plot_waterfall_csv
 from antennalab.report.waterfall_html import write_waterfall_html
@@ -350,6 +351,26 @@ def cmd_alerts(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_report_pack(args: argparse.Namespace) -> int:
+    config, _ = load_config(args.config)
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+
+    scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
+    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
+    waterfalls_dir = Path(output_cfg.get("waterfalls_dir", "data/waterfalls"))
+    out_dir = Path(args.out_dir) if args.out_dir else reports_dir
+
+    pack_dir = build_report_pack(
+        session_name=args.session,
+        scans_dir=scans_dir,
+        reports_dir=reports_dir,
+        waterfalls_dir=waterfalls_dir,
+        out_dir=out_dir,
+    )
+    print(f"Report pack: {pack_dir}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="antennalab",
@@ -599,6 +620,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output alerts CSV path",
     )
     alerts_parser.set_defaults(func=cmd_alerts)
+
+    report_pack_parser = subparsers.add_parser(
+        "report-pack", help="Bundle latest outputs into a session folder"
+    )
+    report_pack_parser.add_argument("--session", help="Session name (folder)")
+    report_pack_parser.add_argument(
+        "--out-dir",
+        help="Output base directory (default: reports dir)",
+    )
+    report_pack_parser.set_defaults(func=cmd_report_pack)
 
     return parser
 

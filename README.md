@@ -113,3 +113,8 @@ Waterfall HTML viewer (no Python deps):
 ```bash
 antennalab waterfall-html --in-csv data/waterfalls/waterfall.csv --out-html data/reports/waterfall.html --palette heat
 ```
+
+Report pack:
+```bash
+antennalab report-pack --session my_session
+```
