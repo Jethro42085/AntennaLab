@@ -95,8 +95,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
         dwell_ms = args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)
         missing_db = device_cfg.get("missing_db", -120.0)
 
-        if args.sweep_stats_csv:
-            scan, sweep_stats = plugin.scan_real_with_sweep_stats(
+    sweep_stats_path = getattr(args, "sweep_stats_csv", None)
+    if sweep_stats_path:
+        scan, sweep_stats = plugin.scan_real_with_sweep_stats(
                 start_hz=float(start_hz),
                 stop_hz=float(stop_hz),
                 bin_hz=float(bin_hz),
@@ -133,8 +134,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
     write_scan_csv(scan, out_csv)
     print(f"Scan CSV: {out_csv}")
 
-    if sweep_stats is not None and args.sweep_stats_csv:
-        out_stats = Path(args.sweep_stats_csv)
+    if sweep_stats is not None and sweep_stats_path:
+        out_stats = Path(sweep_stats_path)
         write_sweep_stats_csv(sweep_stats, out_stats)
         print(f"Sweep stats CSV: {out_stats}")
 
@@ -257,6 +258,7 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_capture_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
     baseline_capture_parser.add_argument("--out-csv", help="Output CSV path")
     baseline_capture_parser.add_argument("--out-json", help="Output JSON run report path")
+    baseline_capture_parser.add_argument("--sweep-stats-csv", help="Output sweep stats CSV path")
     baseline_capture_parser.add_argument("--antenna", help="Antenna profile tag")
     baseline_capture_parser.add_argument("--location", help="Location profile tag")
     baseline_capture_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
