@@ -188,7 +188,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
         write_sweep_stats_csv(sweep_stats, out_stats)
         print(f"Sweep stats CSV: {out_stats}")
 
-    bookmarks_file = args.bookmarks_file
+    bookmarks_file = getattr(args, "bookmarks_file", None)
     bookmarks_payload = None
     if bookmarks_file:
         bookmarks = load_bookmarks(bookmarks_file)
