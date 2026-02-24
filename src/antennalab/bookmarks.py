@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import csv
+import json
 from dataclasses import dataclass
 from pathlib import Path
+
+from antennalab.report.export_csv import read_scan_csv
 
 
 @dataclass(frozen=True)
@@ -62,3 +65,36 @@ def remove_bookmark(path: str | Path, freq_hz: float | None, label: str | None) 
         remaining.append(bm)
     removed = before - len(remaining)
     return save_bookmarks(path, remaining), removed
+
+
+def export_bookmarks_json(path: str | Path, out_json: str | Path) -> Path:
+    bookmarks = load_bookmarks(path)
+    payload = [
+        {"freq_hz": bm.freq_hz, "label": bm.label, "notes": bm.notes}
+        for bm in bookmarks
+    ]
+    output_path = Path(out_json)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return output_path
+
+
+def import_bookmarks_json(path: str | Path, in_json: str | Path) -> Path:
+    input_path = Path(in_json)
+    payload = json.loads(input_path.read_text(encoding="utf-8"))
+    bookmarks = [
+        Bookmark(freq_hz=float(item["freq_hz"]), label=item.get("label", ""), notes=item.get("notes", ""))
+        for item in payload
+    ]
+    bookmarks.sort(key=lambda b: b.freq_hz)
+    return save_bookmarks(path, bookmarks)
+
+
+def match_bookmarks_to_scan(scan_csv: str | Path, bookmarks_file: str | Path) -> list[Bookmark]:
+    meta, _ = read_scan_csv(scan_csv)
+    bookmarks = load_bookmarks(bookmarks_file)
+    return [
+        bm
+        for bm in bookmarks
+        if meta.start_hz <= bm.freq_hz <= meta.stop_hz
+    ]

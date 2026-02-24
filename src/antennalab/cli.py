@@ -9,7 +9,15 @@ from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.analysis.waterfall import WaterfallSettings, run_waterfall
-from antennalab.bookmarks import Bookmark, add_bookmark, load_bookmarks, remove_bookmark
+from antennalab.bookmarks import (
+    Bookmark,
+    add_bookmark,
+    export_bookmarks_json,
+    import_bookmarks_json,
+    load_bookmarks,
+    match_bookmarks_to_scan,
+    remove_bookmark,
+)
 from antennalab.config import load_config
 from antennalab.core.models import SweepStatsBin
 from antennalab.core.registry import get_instrument_plugins
@@ -269,6 +277,30 @@ def cmd_bookmark_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bookmark_export(args: argparse.Namespace) -> int:
+    output = export_bookmarks_json(args.file, args.out_json)
+    print(f"Exported bookmarks: {output}")
+    return 0
+
+
+def cmd_bookmark_import(args: argparse.Namespace) -> int:
+    output = import_bookmarks_json(args.file, args.in_json)
+    print(f"Imported bookmarks: {output}")
+    return 0
+
+
+def cmd_bookmark_match(args: argparse.Namespace) -> int:
+    matches = match_bookmarks_to_scan(args.scan_csv, args.file)
+    if not matches:
+        print("No bookmarks in scan range")
+        return 0
+    for bm in matches:
+        label = f" [{bm.label}]" if bm.label else ""
+        notes = f" - {bm.notes}" if bm.notes else ""
+        print(f"{bm.freq_hz:.0f} Hz{label}{notes}")
+    return 0
+
+
 def cmd_noise_floor(args: argparse.Namespace) -> int:
     config, _ = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
@@ -460,6 +492,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Bookmarks CSV file",
     )
     bookmarks_remove.set_defaults(func=cmd_bookmark_remove)
+
+    bookmarks_export = bookmarks_sub.add_parser("export", help="Export bookmarks to JSON")
+    bookmarks_export.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_export.add_argument(
+        "--out-json",
+        default="data/reports/bookmarks.json",
+        help="Output JSON path",
+    )
+    bookmarks_export.set_defaults(func=cmd_bookmark_export)
+
+    bookmarks_import = bookmarks_sub.add_parser("import", help="Import bookmarks from JSON")
+    bookmarks_import.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_import.add_argument(
+        "--in-json",
+        required=True,
+        help="Input JSON path",
+    )
+    bookmarks_import.set_defaults(func=cmd_bookmark_import)
+
+    bookmarks_match = bookmarks_sub.add_parser(
+        "match", help="List bookmarks that fall within a scan's range"
+    )
+    bookmarks_match.add_argument("--scan-csv", required=True, help="Scan CSV path")
+    bookmarks_match.add_argument(
+        "--file",
+        default="config/bookmarks.csv",
+        help="Bookmarks CSV file",
+    )
+    bookmarks_match.set_defaults(func=cmd_bookmark_match)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")

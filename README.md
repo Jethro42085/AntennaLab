@@ -101,3 +101,10 @@ antennalab bookmarks add --freq-hz 100000000 --label "FM 100" --notes "local"
 antennalab bookmarks list
 antennalab bookmarks remove --freq-hz 100000000
 ```
+
+Bookmark import/export and scan matching:
+```bash
+antennalab bookmarks export --out-json data/reports/bookmarks.json
+antennalab bookmarks import --in-json data/reports/bookmarks.json
+antennalab bookmarks match --scan-csv data/scans/scan.csv
+```
