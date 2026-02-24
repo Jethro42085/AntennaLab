@@ -108,3 +108,8 @@ antennalab bookmarks export --out-json data/reports/bookmarks.json
 antennalab bookmarks import --in-json data/reports/bookmarks.json
 antennalab bookmarks match --scan-csv data/scans/scan.csv
 ```
+
+Waterfall HTML viewer (no Python deps):
+```bash
+antennalab waterfall-html --in-csv data/waterfalls/waterfall.csv --out-html data/reports/waterfall.html --palette heat
+```

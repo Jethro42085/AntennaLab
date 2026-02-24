@@ -26,6 +26,7 @@ from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sw
 from antennalab.report.plot import plot_scan_csv
 from antennalab.report.run_report import write_run_report
 from antennalab.report.waterfall_plot import plot_waterfall_csv
+from antennalab.report.waterfall_html import write_waterfall_html
 
 
 def cmd_info(args: argparse.Namespace) -> int:
@@ -251,6 +252,18 @@ def cmd_plot_waterfall(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_waterfall_html(args: argparse.Namespace) -> int:
+    output_path = write_waterfall_html(
+        args.in_csv,
+        args.out_html,
+        palette=args.palette,
+        vmin=args.vmin,
+        vmax=args.vmax,
+    )
+    print(f"Waterfall HTML: {output_path}")
+    return 0
+
+
 def cmd_bookmark_add(args: argparse.Namespace) -> int:
     bookmark = Bookmark(freq_hz=float(args.freq_hz), label=args.label or "", notes=args.notes or "")
     add_bookmark(args.file, bookmark)
@@ -460,6 +473,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Upper bound for color scale",
     )
     waterfall_plot_parser.set_defaults(func=cmd_plot_waterfall)
+
+    waterfall_html_parser = subparsers.add_parser(
+        "waterfall-html", help="Generate a self-contained HTML waterfall viewer"
+    )
+    waterfall_html_parser.add_argument("--in-csv", required=True, help="Input waterfall CSV")
+    waterfall_html_parser.add_argument(
+        "--out-html",
+        default="data/reports/waterfall.html",
+        help="Output HTML path",
+    )
+    waterfall_html_parser.add_argument(
+        "--palette",
+        choices=["heat", "gray"],
+        default="heat",
+        help="Color palette",
+    )
+    waterfall_html_parser.add_argument(
+        "--vmin",
+        type=float,
+        help="Lower bound for color scale",
+    )
+    waterfall_html_parser.add_argument(
+        "--vmax",
+        type=float,
+        help="Upper bound for color scale",
+    )
+    waterfall_html_parser.set_defaults(func=cmd_waterfall_html)
 
     bookmarks_parser = subparsers.add_parser("bookmarks", help="Manage frequency bookmarks")
     bookmarks_sub = bookmarks_parser.add_subparsers(dest="bookmarks_cmd", required=True)
