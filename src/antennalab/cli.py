@@ -15,6 +15,7 @@ from antennalab.bookmarks import (
     export_bookmarks_json,
     import_bookmarks_json,
     load_bookmarks,
+    match_bookmarks_to_range,
     match_bookmarks_to_scan,
     remove_bookmark,
 )
@@ -57,8 +58,12 @@ def cmd_health(args: argparse.Namespace) -> int:
     return 0 if overall_ok else 1
 
 
+def _resolve_path(base: Path, path: Path) -> Path:
+    return path if path.is_absolute() else (base / path)
+
+
 def cmd_scan(args: argparse.Namespace) -> int:
-    config, _ = load_config(args.config)
+    config, config_path = load_config(args.config)
     scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
     device_cfg = config.get("device", {}) if isinstance(config, dict) else {}
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
@@ -71,8 +76,14 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     mode = args.mode or scan_cfg.get("mode", "real")
 
-    scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
-    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
+    base_dir = Path.cwd()
+    if config_path:
+        base_dir = config_path.parent
+        if base_dir.name == "config":
+            base_dir = base_dir.parent
+
+    scans_dir = _resolve_path(base_dir, Path(output_cfg.get("scans_dir", "data/scans")))
+    reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
 
     out_csv = Path(args.out_csv) if args.out_csv else scans_dir / "scan.csv"
     out_json = Path(args.out_json) if args.out_json else None
@@ -154,12 +165,22 @@ def cmd_scan(args: argparse.Namespace) -> int:
         write_sweep_stats_csv(sweep_stats, out_stats)
         print(f"Sweep stats CSV: {out_stats}")
 
+    bookmarks_file = args.bookmarks_file
+    bookmarks_payload = None
+    if bookmarks_file:
+        bookmarks = load_bookmarks(bookmarks_file)
+        matched = match_bookmarks_to_range(bookmarks, scan.start_hz, scan.stop_hz)
+        bookmarks_payload = [
+            {"freq_hz": bm.freq_hz, "label": bm.label, "notes": bm.notes}
+            for bm in matched
+        ]
+
     if out_json:
-        write_run_report(scan, out_json)
+        write_run_report(scan, out_json, bookmarks=bookmarks_payload)
         print(f"Run report: {out_json}")
     else:
         default_report = reports_dir / "scan_report.json"
-        write_run_report(scan, default_report)
+        write_run_report(scan, default_report, bookmarks=bookmarks_payload)
         print(f"Run report: {default_report}")
 
     return 0
@@ -351,13 +372,10 @@ def cmd_alerts(args: argparse.Namespace) -> int:
     return 0
 
 
-def _resolve_path(base: Path, path: Path) -> Path:
-    return path if path.is_absolute() else (base / path)
-
-
 def cmd_report_pack(args: argparse.Namespace) -> int:
     config, config_path = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+
     if config_path:
         base_dir = config_path.parent
         if base_dir.name == "config":
@@ -411,6 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--out-json", help="Output JSON run report path")
     scan_parser.add_argument("--baseline-csv", help="Baseline scan CSV to subtract")
     scan_parser.add_argument("--sweep-stats-csv", help="Output sweep stats CSV path")
+    scan_parser.add_argument("--bookmarks-file", default="config/bookmarks.csv", help="Bookmarks CSV file")
     scan_parser.add_argument("--antenna", help="Antenna profile tag")
     scan_parser.add_argument("--location", help="Location profile tag")
     scan_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")

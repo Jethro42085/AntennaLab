@@ -118,3 +118,9 @@ Report pack:
 ```bash
 antennalab report-pack --session my_session
 ```
+
+Scan reports now include matched bookmarks if the bookmarks file exists.
+You can override with:
+```bash
+antennalab scan --bookmarks-file config/bookmarks.csv
+```

@@ -83,7 +83,11 @@ def import_bookmarks_json(path: str | Path, in_json: str | Path) -> Path:
     input_path = Path(in_json)
     payload = json.loads(input_path.read_text(encoding="utf-8"))
     bookmarks = [
-        Bookmark(freq_hz=float(item["freq_hz"]), label=item.get("label", ""), notes=item.get("notes", ""))
+        Bookmark(
+            freq_hz=float(item["freq_hz"]),
+            label=item.get("label", ""),
+            notes=item.get("notes", ""),
+        )
         for item in payload
     ]
     bookmarks.sort(key=lambda b: b.freq_hz)
@@ -93,8 +97,10 @@ def import_bookmarks_json(path: str | Path, in_json: str | Path) -> Path:
 def match_bookmarks_to_scan(scan_csv: str | Path, bookmarks_file: str | Path) -> list[Bookmark]:
     meta, _ = read_scan_csv(scan_csv)
     bookmarks = load_bookmarks(bookmarks_file)
-    return [
-        bm
-        for bm in bookmarks
-        if meta.start_hz <= bm.freq_hz <= meta.stop_hz
-    ]
+    return match_bookmarks_to_range(bookmarks, meta.start_hz, meta.stop_hz)
+
+
+def match_bookmarks_to_range(
+    bookmarks: list[Bookmark], start_hz: float, stop_hz: float
+) -> list[Bookmark]:
+    return [bm for bm in bookmarks if start_hz <= bm.freq_hz <= stop_hz]

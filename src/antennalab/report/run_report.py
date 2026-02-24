@@ -7,7 +7,12 @@ from typing import Any
 from antennalab.core.models import ScanResult
 
 
-def write_run_report(scan: ScanResult, path: str | Path) -> Path:
+def write_run_report(
+    scan: ScanResult,
+    path: str | Path,
+    *,
+    bookmarks: list[dict[str, Any]] | None = None,
+) -> Path:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -28,6 +33,9 @@ def write_run_report(scan: ScanResult, path: str | Path) -> Path:
             "max": max(b.max_db for b in scan.bins) if scan.bins else None,
         },
     }
+
+    if bookmarks is not None:
+        payload["bookmarks"] = bookmarks
 
     with output_path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, sort_keys=True)
