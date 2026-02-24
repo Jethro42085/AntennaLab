@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from antennalab.core.models import ScanBin, ScanResult
+from antennalab.core.models import ScanBin, ScanResult, SweepStatsBin
 
 
 @dataclass(frozen=True)
@@ -174,6 +174,29 @@ def write_compare_csv(result: "CompareResult", path: str | Path) -> Path:
                     f"{bin_.freq_hz:.0f}",
                     f"{bin_.delta_avg_db:.2f}",
                     f"{bin_.delta_max_db:.2f}",
+                ]
+            )
+
+    return output_path
+
+
+def write_sweep_stats_csv(
+    bins: Iterable[SweepStatsBin],
+    path: str | Path,
+) -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["freq_hz", "sweep_avg_min_db", "sweep_avg_mean_db", "sweep_avg_max_db"])
+        for bin_ in bins:
+            writer.writerow(
+                [
+                    f"{bin_.freq_hz:.0f}",
+                    f"{bin_.sweep_avg_min_db:.2f}",
+                    f"{bin_.sweep_avg_mean_db:.2f}",
+                    f"{bin_.sweep_avg_max_db:.2f}",
                 ]
             )
 

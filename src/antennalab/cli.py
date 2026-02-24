@@ -9,9 +9,11 @@ from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
+from antennalab.core.models import SweepStatsBin
 from antennalab.core.registry import get_instrument_plugins
 from antennalab.instruments.rtlsdr import RTLSDRPlugin
-from antennalab.report.export_csv import scan_from_csv, write_scan_csv
+from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sweep_stats_csv
+from antennalab.report.plot import plot_scan_csv
 from antennalab.report.run_report import write_run_report
 
 
@@ -63,6 +65,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
     out_json = Path(args.out_json) if args.out_json else None
 
     plugin = RTLSDRPlugin()
+    sweep_stats: tuple[SweepStatsBin, ...] | None = None
+
     if mode == "sim":
         scan = plugin.scan_simulated(
             start_hz=float(start_hz),
@@ -72,6 +76,16 @@ def cmd_scan(args: argparse.Namespace) -> int:
             location_tag=args.location,
             seed=args.seed,
         )
+        if args.sweep_stats_csv:
+            sweep_stats = tuple(
+                SweepStatsBin(
+                    freq_hz=b.freq_hz,
+                    sweep_avg_min_db=b.avg_db,
+                    sweep_avg_mean_db=b.avg_db,
+                    sweep_avg_max_db=b.avg_db,
+                )
+                for b in scan.bins
+            )
     else:
         sample_rate_hz = args.sample_rate or device_cfg.get("sample_rate_hz", 2_400_000)
         gain_db = args.gain if args.gain is not None else device_cfg.get("gain_db", "auto")
@@ -81,20 +95,36 @@ def cmd_scan(args: argparse.Namespace) -> int:
         dwell_ms = args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)
         missing_db = device_cfg.get("missing_db", -120.0)
 
-        scan = plugin.scan_real(
-            start_hz=float(start_hz),
-            stop_hz=float(stop_hz),
-            bin_hz=float(bin_hz),
-            sample_rate_hz=float(sample_rate_hz),
-            gain_db=gain_db,
-            fft_size=int(fft_size),
-            step_hz=float(step_hz) if step_hz is not None else None,
-            sweeps=int(sweeps),
-            dwell_ms=int(dwell_ms),
-            missing_db=float(missing_db),
-            antenna_tag=args.antenna,
-            location_tag=args.location,
-        )
+        if args.sweep_stats_csv:
+            scan, sweep_stats = plugin.scan_real_with_sweep_stats(
+                start_hz=float(start_hz),
+                stop_hz=float(stop_hz),
+                bin_hz=float(bin_hz),
+                sample_rate_hz=float(sample_rate_hz),
+                gain_db=gain_db,
+                fft_size=int(fft_size),
+                step_hz=float(step_hz) if step_hz is not None else None,
+                sweeps=int(sweeps),
+                dwell_ms=int(dwell_ms),
+                missing_db=float(missing_db),
+                antenna_tag=args.antenna,
+                location_tag=args.location,
+            )
+        else:
+            scan = plugin.scan_real(
+                start_hz=float(start_hz),
+                stop_hz=float(stop_hz),
+                bin_hz=float(bin_hz),
+                sample_rate_hz=float(sample_rate_hz),
+                gain_db=gain_db,
+                fft_size=int(fft_size),
+                step_hz=float(step_hz) if step_hz is not None else None,
+                sweeps=int(sweeps),
+                dwell_ms=int(dwell_ms),
+                missing_db=float(missing_db),
+                antenna_tag=args.antenna,
+                location_tag=args.location,
+            )
 
     if args.baseline_csv:
         baseline = load_baseline(args.baseline_csv)
@@ -102,6 +132,11 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     write_scan_csv(scan, out_csv)
     print(f"Scan CSV: {out_csv}")
+
+    if sweep_stats is not None and args.sweep_stats_csv:
+        out_stats = Path(args.sweep_stats_csv)
+        write_sweep_stats_csv(sweep_stats, out_stats)
+        print(f"Sweep stats CSV: {out_stats}")
 
     if out_json:
         write_run_report(scan, out_json)
@@ -114,12 +149,27 @@ def cmd_scan(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_capture(args: argparse.Namespace) -> int:
+    if args.out_csv is None:
+        config, _ = load_config(args.config)
+        output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+        scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
+        args.out_csv = str(scans_dir / "baseline.csv")
+    return cmd_scan(args)
+
+
 def cmd_baseline_apply(args: argparse.Namespace) -> int:
     scan = scan_from_csv(args.scan_csv)
     baseline = load_baseline(args.baseline_csv)
     adjusted = apply_baseline(scan, baseline)
     write_scan_csv(adjusted, args.out_csv)
     print(f"Baseline-adjusted CSV: {args.out_csv}")
+    return 0
+
+
+def cmd_plot_scan(args: argparse.Namespace) -> int:
+    output_path = plot_scan_csv(args.in_csv, args.out_png)
+    print(f"Plot image: {output_path}")
     return 0
 
 
@@ -186,6 +236,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--out-csv", help="Output CSV path")
     scan_parser.add_argument("--out-json", help="Output JSON run report path")
     scan_parser.add_argument("--baseline-csv", help="Baseline scan CSV to subtract")
+    scan_parser.add_argument("--sweep-stats-csv", help="Output sweep stats CSV path")
     scan_parser.add_argument("--antenna", help="Antenna profile tag")
     scan_parser.add_argument("--location", help="Location profile tag")
     scan_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
@@ -197,6 +248,26 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
     scan_parser.set_defaults(func=cmd_scan)
 
+    baseline_capture_parser = subparsers.add_parser(
+        "baseline-capture", help="Capture a baseline scan"
+    )
+    baseline_capture_parser.add_argument("--mode", choices=["real", "sim"], help="Scan mode")
+    baseline_capture_parser.add_argument("--start-hz", type=float, help="Scan start frequency (Hz)")
+    baseline_capture_parser.add_argument("--stop-hz", type=float, help="Scan stop frequency (Hz)")
+    baseline_capture_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
+    baseline_capture_parser.add_argument("--out-csv", help="Output CSV path")
+    baseline_capture_parser.add_argument("--out-json", help="Output JSON run report path")
+    baseline_capture_parser.add_argument("--antenna", help="Antenna profile tag")
+    baseline_capture_parser.add_argument("--location", help="Location profile tag")
+    baseline_capture_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
+    baseline_capture_parser.add_argument("--sample-rate", type=float, help="RTL-SDR sample rate (Hz)")
+    baseline_capture_parser.add_argument("--gain", help="RTL-SDR gain (auto or dB)")
+    baseline_capture_parser.add_argument("--fft-size", type=int, help="FFT size per sweep")
+    baseline_capture_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
+    baseline_capture_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
+    baseline_capture_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
+    baseline_capture_parser.set_defaults(func=cmd_baseline_capture)
+
     baseline_parser = subparsers.add_parser(
         "baseline-apply", help="Apply baseline to an existing scan CSV"
     )
@@ -204,6 +275,15 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_parser.add_argument("--baseline-csv", required=True, help="Baseline CSV")
     baseline_parser.add_argument("--out-csv", required=True, help="Output CSV")
     baseline_parser.set_defaults(func=cmd_baseline_apply)
+
+    plot_parser = subparsers.add_parser("plot-scan", help="Plot a scan CSV to PNG")
+    plot_parser.add_argument("--in-csv", required=True, help="Input scan CSV")
+    plot_parser.add_argument(
+        "--out-png",
+        default="data/reports/scan.png",
+        help="Output PNG path",
+    )
+    plot_parser.set_defaults(func=cmd_plot_scan)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")

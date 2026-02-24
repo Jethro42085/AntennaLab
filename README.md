@@ -47,3 +47,18 @@ Apply baseline to an existing scan file:
 ```bash
 antennalab baseline-apply --scan-csv data/scans/scan.csv --baseline-csv data/scans/baseline.csv --out-csv data/scans/scan_adjusted.csv
 ```
+
+Baseline capture shortcut:
+```bash
+antennalab baseline-capture --mode real
+```
+
+Sweep stability stats (min/mean/max per sweep average):
+```bash
+antennalab scan --mode real --sweep-stats-csv data/reports/sweep_stats.csv
+```
+
+Plot a scan CSV to PNG:
+```bash
+antennalab plot-scan --in-csv data/scans/scan.csv --out-png data/reports/scan.png
+```

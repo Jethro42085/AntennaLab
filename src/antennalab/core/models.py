@@ -28,3 +28,11 @@ class ScanResult:
 
     def iter_bins(self) -> Iterable[ScanBin]:
         return self.bins
+
+
+@dataclass(frozen=True)
+class SweepStatsBin:
+    freq_hz: float
+    sweep_avg_min_db: float
+    sweep_avg_mean_db: float
+    sweep_avg_max_db: float
