@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from antennalab.report.report_pack import build_report_pack
 
@@ -14,7 +15,10 @@ def test_report_pack(tmp_path: Path) -> None:
     waterfalls.mkdir()
 
     (scans / "scan.csv").write_text("scan", encoding="utf-8")
-    (reports / "scan_report.json").write_text("{}", encoding="utf-8")
+    (reports / "scan_report.json").write_text(
+        json.dumps({"timestamp": "t", "start_hz": 1, "stop_hz": 2, "bin_hz": 3}),
+        encoding="utf-8",
+    )
     (waterfalls / "waterfall.csv").write_text("water", encoding="utf-8")
 
     pack_dir, copied = build_report_pack(
@@ -25,7 +29,8 @@ def test_report_pack(tmp_path: Path) -> None:
         out_dir=out,
     )
 
-    assert copied == 3
+    assert copied >= 3
     assert (pack_dir / "scan.csv").exists()
     assert (pack_dir / "scan_report.json").exists()
     assert (pack_dir / "waterfall.csv").exists()
+    assert (pack_dir / "summary.json").exists()

@@ -124,3 +124,5 @@ You can override with:
 ```bash
 antennalab scan --bookmarks-file config/bookmarks.csv
 ```
+
+Report pack summary includes bookmark matches (if present in scan_report.json).

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,12 @@ def copy_if_exists(src: Path, dst: Path) -> bool:
     return True
 
 
+def _read_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def build_report_pack(
     *,
     session_name: str | None,
@@ -24,7 +31,7 @@ def build_report_pack(
     reports_dir: Path,
     waterfalls_dir: Path,
     out_dir: Path,
-) -> Path:
+) -> tuple[Path, int]:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     session = session_name or f"session_{timestamp}"
 
@@ -46,5 +53,25 @@ def build_report_pack(
     copied += int(copy_if_exists(reports_dir / "waterfall.html", pack_dir / "waterfall.html"))
     copied += int(copy_if_exists(reports_dir / "bookmarks.json", pack_dir / "bookmarks.json"))
     copied += int(copy_if_exists(waterfalls_dir / "waterfall.csv", pack_dir / "waterfall.csv"))
+
+    summary = {
+        "session": session,
+        "created_at": timestamp,
+        "files": sorted(p.name for p in pack_dir.iterdir() if p.is_file()),
+    }
+
+    scan_report = _read_json(pack_dir / "scan_report.json")
+    if scan_report:
+        summary["scan_report"] = {
+            "timestamp": scan_report.get("timestamp"),
+            "start_hz": scan_report.get("start_hz"),
+            "stop_hz": scan_report.get("stop_hz"),
+            "bin_hz": scan_report.get("bin_hz"),
+            "bookmarks": scan_report.get("bookmarks", []),
+        }
+
+    summary_path = pack_dir / "summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    copied += 1
 
     return pack_dir, copied
