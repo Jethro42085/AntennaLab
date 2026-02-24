@@ -36,6 +36,7 @@ from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sw
 from antennalab.report.plot import plot_scan_csv
 from antennalab.report.report_pack import build_report_pack
 from antennalab.report.run_report import write_run_report
+from antennalab.report.monitor_plot import plot_monitor_summary
 from antennalab.report.waterfall_plot import plot_waterfall_csv
 from antennalab.report.waterfall_html import write_waterfall_html
 
@@ -457,6 +458,12 @@ def cmd_report_pack(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_monitor_plot(args: argparse.Namespace) -> int:
+    output = plot_monitor_summary(args.in_json, args.out_png)
+    print(f"Monitor plot: {output}")
+    return 0
+
+
 def cmd_monitor(args: argparse.Namespace) -> int:
     config, config_path = load_config(args.config)
     scan_cfg = config.get("scan", {}) if isinstance(config, dict) else {}
@@ -795,6 +802,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output base directory (default: reports dir)",
     )
     report_pack_parser.set_defaults(func=cmd_report_pack)
+
+    monitor_plot_parser = subparsers.add_parser(
+        "monitor-plot", help="Plot monitor summary JSON to PNG"
+    )
+    monitor_plot_parser.add_argument("--in-json", required=True, help="Monitor summary JSON")
+    monitor_plot_parser.add_argument(
+        "--out-png",
+        default="data/reports/monitor_plot.png",
+        help="Output PNG path",
+    )
+    monitor_plot_parser.set_defaults(func=cmd_monitor_plot)
 
     monitor_parser = subparsers.add_parser(
         "monitor", help="Run repeated scans over time"

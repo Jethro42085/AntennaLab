@@ -156,3 +156,8 @@ Remove a baseline profile:
 ```bash
 antennalab baseline-remove --tag night
 ```
+
+Monitor summary plot:
+```bash
+antennalab monitor-plot --in-json data/reports/monitor_quick/summary.json --out-png data/reports/monitor_quick/monitor.png
+```
