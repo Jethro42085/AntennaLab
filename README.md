@@ -31,3 +31,14 @@ antennalab scan --mode sim --seed 42
 Real scan tuning:
 - `--sweeps N` averages N full sweeps across the band (default 3)
 - `--dwell-ms MS` waits between center steps (default 0)
+
+Baseline subtraction (simple calibration):
+1) Capture a baseline scan in a quiet condition:
+```bash
+antennalab scan --mode real --out-csv data/scans/baseline.csv
+```
+2) Run a new scan with baseline subtraction:
+```bash
+antennalab scan --mode real --baseline-csv data/scans/baseline.csv
+```
+This subtracts baseline avg power per bin from avg/max.

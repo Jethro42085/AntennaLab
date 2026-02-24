@@ -5,6 +5,7 @@ from pathlib import Path
 
 from antennalab import __version__
 from antennalab.analysis.alerts import AlertEngine, load_alert_rules, write_alert_hits
+from antennalab.analysis.calibration import apply_baseline, load_baseline
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
@@ -95,6 +96,10 @@ def cmd_scan(args: argparse.Namespace) -> int:
             location_tag=args.location,
         )
 
+    if args.baseline_csv:
+        baseline = load_baseline(args.baseline_csv)
+        scan = apply_baseline(scan, baseline)
+
     write_scan_csv(scan, out_csv)
     print(f"Scan CSV: {out_csv}")
 
@@ -171,6 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--bin-hz", type=float, help="Bin size (Hz)")
     scan_parser.add_argument("--out-csv", help="Output CSV path")
     scan_parser.add_argument("--out-json", help="Output JSON run report path")
+    scan_parser.add_argument("--baseline-csv", help="Baseline scan CSV to subtract")
     scan_parser.add_argument("--antenna", help="Antenna profile tag")
     scan_parser.add_argument("--location", help="Location profile tag")
     scan_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
