@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from antennalab import __version__
+from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
 from antennalab.core.registry import get_instrument_plugins
 from antennalab.instruments.rtlsdr import RTLSDRPlugin
@@ -79,6 +80,21 @@ def cmd_scan(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_noise_floor(args: argparse.Namespace) -> int:
+    config, _ = load_config(args.config)
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
+
+    out_csv = Path(args.out_csv) if args.out_csv else reports_dir / "noise_floor.csv"
+    estimate_noise_floor(
+        scan_csv=args.in_csv,
+        out_csv=out_csv,
+        strategy=args.strategy,
+    )
+    print(f"Noise floor CSV: {out_csv}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="antennalab",
@@ -108,6 +124,16 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--location", help="Location profile tag")
     scan_parser.add_argument("--seed", type=int, help="Random seed for simulated scan")
     scan_parser.set_defaults(func=cmd_scan)
+
+    noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
+    noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")
+    noise_parser.add_argument("--out-csv", help="Output noise floor CSV path")
+    noise_parser.add_argument(
+        "--strategy",
+        default="avg",
+        help="Noise floor strategy (avg)",
+    )
+    noise_parser.set_defaults(func=cmd_noise_floor)
 
     return parser
 
