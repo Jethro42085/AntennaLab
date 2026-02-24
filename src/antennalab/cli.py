@@ -370,14 +370,16 @@ def cmd_report_pack(args: argparse.Namespace) -> int:
     waterfalls_dir = _resolve_path(base_dir, Path(output_cfg.get("waterfalls_dir", "data/waterfalls")))
     out_dir = _resolve_path(base_dir, Path(args.out_dir)) if args.out_dir else reports_dir
 
-    pack_dir = build_report_pack(
+    pack_dir, copied = build_report_pack(
         session_name=args.session,
         scans_dir=scans_dir,
         reports_dir=reports_dir,
         waterfalls_dir=waterfalls_dir,
         out_dir=out_dir,
     )
-    print(f"Report pack: {pack_dir}")
+    print(f"Report pack: {pack_dir} ({copied} file(s) copied)")
+    if copied == 0:
+        print("Warning: report pack is empty. Run scans or plots first.")
     return 0
 
 

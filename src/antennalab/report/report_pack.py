@@ -30,20 +30,21 @@ def build_report_pack(
 
     pack_dir = out_dir / session
     _ensure_dir(pack_dir)
+    copied = 0
 
     # Common outputs
-    copy_if_exists(scans_dir / "scan.csv", pack_dir / "scan.csv")
-    copy_if_exists(scans_dir / "baseline.csv", pack_dir / "baseline.csv")
-    copy_if_exists(scans_dir / "scan_adjusted.csv", pack_dir / "scan_adjusted.csv")
-    copy_if_exists(reports_dir / "scan_report.json", pack_dir / "scan_report.json")
-    copy_if_exists(reports_dir / "noise_floor.csv", pack_dir / "noise_floor.csv")
-    copy_if_exists(reports_dir / "compare.csv", pack_dir / "compare.csv")
-    copy_if_exists(reports_dir / "sweep_stats.csv", pack_dir / "sweep_stats.csv")
-    copy_if_exists(reports_dir / "alerts.csv", pack_dir / "alerts.csv")
-    copy_if_exists(reports_dir / "scan.png", pack_dir / "scan.png")
-    copy_if_exists(reports_dir / "waterfall.png", pack_dir / "waterfall.png")
-    copy_if_exists(reports_dir / "waterfall.html", pack_dir / "waterfall.html")
-    copy_if_exists(reports_dir / "bookmarks.json", pack_dir / "bookmarks.json")
-    copy_if_exists(waterfalls_dir / "waterfall.csv", pack_dir / "waterfall.csv")
+    copied += int(copy_if_exists(scans_dir / "scan.csv", pack_dir / "scan.csv"))
+    copied += int(copy_if_exists(scans_dir / "baseline.csv", pack_dir / "baseline.csv"))
+    copied += int(copy_if_exists(scans_dir / "scan_adjusted.csv", pack_dir / "scan_adjusted.csv"))
+    copied += int(copy_if_exists(reports_dir / "scan_report.json", pack_dir / "scan_report.json"))
+    copied += int(copy_if_exists(reports_dir / "noise_floor.csv", pack_dir / "noise_floor.csv"))
+    copied += int(copy_if_exists(reports_dir / "compare.csv", pack_dir / "compare.csv"))
+    copied += int(copy_if_exists(reports_dir / "sweep_stats.csv", pack_dir / "sweep_stats.csv"))
+    copied += int(copy_if_exists(reports_dir / "alerts.csv", pack_dir / "alerts.csv"))
+    copied += int(copy_if_exists(reports_dir / "scan.png", pack_dir / "scan.png"))
+    copied += int(copy_if_exists(reports_dir / "waterfall.png", pack_dir / "waterfall.png"))
+    copied += int(copy_if_exists(reports_dir / "waterfall.html", pack_dir / "waterfall.html"))
+    copied += int(copy_if_exists(reports_dir / "bookmarks.json", pack_dir / "bookmarks.json"))
+    copied += int(copy_if_exists(waterfalls_dir / "waterfall.csv", pack_dir / "waterfall.csv"))
 
-    return pack_dir
+    return pack_dir, copied

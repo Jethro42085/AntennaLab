@@ -17,7 +17,7 @@ def test_report_pack(tmp_path: Path) -> None:
     (reports / "scan_report.json").write_text("{}", encoding="utf-8")
     (waterfalls / "waterfall.csv").write_text("water", encoding="utf-8")
 
-    pack_dir = build_report_pack(
+    pack_dir, copied = build_report_pack(
         session_name="test",
         scans_dir=scans,
         reports_dir=reports,
@@ -25,6 +25,7 @@ def test_report_pack(tmp_path: Path) -> None:
         out_dir=out,
     )
 
+    assert copied == 3
     assert (pack_dir / "scan.csv").exists()
     assert (pack_dir / "scan_report.json").exists()
     assert (pack_dir / "waterfall.csv").exists()
