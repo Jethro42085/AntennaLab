@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from antennalab import __version__
+from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
 from antennalab.core.registry import get_instrument_plugins
@@ -95,6 +96,17 @@ def cmd_noise_floor(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare(args: argparse.Namespace) -> int:
+    config, _ = load_config(args.config)
+    output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
+    reports_dir = Path(output_cfg.get("reports_dir", "data/reports"))
+
+    out_csv = Path(args.out_csv) if args.out_csv else reports_dir / "compare.csv"
+    compare_to_csv(args.scan_a, args.scan_b, out_csv)
+    print(f"Compare CSV: {out_csv}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="antennalab",
@@ -134,6 +146,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Noise floor strategy (avg)",
     )
     noise_parser.set_defaults(func=cmd_noise_floor)
+
+    compare_parser = subparsers.add_parser("compare", help="Compare two scans")
+    compare_parser.add_argument("--scan-a", required=True, help="Scan A CSV path")
+    compare_parser.add_argument("--scan-b", required=True, help="Scan B CSV path")
+    compare_parser.add_argument("--out-csv", help="Output compare CSV path")
+    compare_parser.set_defaults(func=cmd_compare)
 
     return parser
 

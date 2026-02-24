@@ -24,29 +24,35 @@ def write_scan_csv(scan: ScanResult, path: str | Path) -> Path:
 
     with output_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow([
-            "timestamp",
-            "start_hz",
-            "stop_hz",
-            "bin_hz",
-            "antenna_tag",
-            "location_tag",
-        ])
-        writer.writerow([
-            scan.timestamp,
-            scan.start_hz,
-            scan.stop_hz,
-            scan.bin_hz,
-            scan.antenna_tag or "",
-            scan.location_tag or "",
-        ])
+        writer.writerow(
+            [
+                "timestamp",
+                "start_hz",
+                "stop_hz",
+                "bin_hz",
+                "antenna_tag",
+                "location_tag",
+            ]
+        )
+        writer.writerow(
+            [
+                scan.timestamp,
+                scan.start_hz,
+                scan.stop_hz,
+                scan.bin_hz,
+                scan.antenna_tag or "",
+                scan.location_tag or "",
+            ]
+        )
         writer.writerow(["freq_hz", "avg_db", "max_db"])
         for scan_bin in scan.iter_bins():
-            writer.writerow([
-                f"{scan_bin.freq_hz:.0f}",
-                f"{scan_bin.avg_db:.2f}",
-                f"{scan_bin.max_db:.2f}",
-            ])
+            writer.writerow(
+                [
+                    f"{scan_bin.freq_hz:.0f}",
+                    f"{scan_bin.avg_db:.2f}",
+                    f"{scan_bin.max_db:.2f}",
+                ]
+            )
 
     return output_path
 
@@ -101,29 +107,61 @@ def write_noise_floor_csv(
 
     with output_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow([
-            "timestamp",
-            "start_hz",
-            "stop_hz",
-            "bin_hz",
-            "antenna_tag",
-            "location_tag",
-            "strategy",
-        ])
-        writer.writerow([
-            scan_meta.timestamp,
-            scan_meta.start_hz,
-            scan_meta.stop_hz,
-            scan_meta.bin_hz,
-            scan_meta.antenna_tag or "",
-            scan_meta.location_tag or "",
-            strategy,
-        ])
+        writer.writerow(
+            [
+                "timestamp",
+                "start_hz",
+                "stop_hz",
+                "bin_hz",
+                "antenna_tag",
+                "location_tag",
+                "strategy",
+            ]
+        )
+        writer.writerow(
+            [
+                scan_meta.timestamp,
+                scan_meta.start_hz,
+                scan_meta.stop_hz,
+                scan_meta.bin_hz,
+                scan_meta.antenna_tag or "",
+                scan_meta.location_tag or "",
+                strategy,
+            ]
+        )
         writer.writerow(["freq_hz", "noise_floor_db"])
         for bin_ in result.bins:
-            writer.writerow([
-                f"{bin_.freq_hz:.0f}",
-                f"{bin_.noise_floor_db:.2f}",
-            ])
+            writer.writerow(
+                [
+                    f"{bin_.freq_hz:.0f}",
+                    f"{bin_.noise_floor_db:.2f}",
+                ]
+            )
+
+    return output_path
+
+
+def write_compare_csv(result: "CompareResult", path: str | Path) -> Path:
+    from antennalab.analysis.compare import CompareResult
+
+    if not isinstance(result, CompareResult):
+        raise TypeError("result must be CompareResult")
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["scan_a", "scan_b", "score"])
+        writer.writerow([result.scan_a, result.scan_b, f"{result.score:.3f}"])
+        writer.writerow(["freq_hz", "delta_avg_db", "delta_max_db"])
+        for bin_ in result.bins:
+            writer.writerow(
+                [
+                    f"{bin_.freq_hz:.0f}",
+                    f"{bin_.delta_avg_db:.2f}",
+                    f"{bin_.delta_max_db:.2f}",
+                ]
+            )
 
     return output_path
