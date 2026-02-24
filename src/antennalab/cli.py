@@ -127,8 +127,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
                 location_tag=args.location,
             )
 
-    if args.baseline_csv:
-        baseline = load_baseline(args.baseline_csv)
+    baseline_csv = getattr(args, "baseline_csv", None)
+    if baseline_csv:
+        baseline = load_baseline(baseline_csv)
         scan = apply_baseline(scan, baseline)
 
     write_scan_csv(scan, out_csv)
