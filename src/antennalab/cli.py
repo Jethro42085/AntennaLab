@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from antennalab import __version__
+from antennalab.analysis.alerts import AlertEngine, load_alert_rules, write_alert_hits
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.noise_floor import estimate_noise_floor
 from antennalab.config import load_config
@@ -107,6 +108,16 @@ def cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_alerts(args: argparse.Namespace) -> int:
+    output_path = Path(args.out_log)
+    rules = load_alert_rules(args.rules)
+    engine = AlertEngine(rules)
+    hits = engine.evaluate(args.scan_csv)
+    write_alert_hits(hits, output_path)
+    print(f"Alert log: {output_path} ({len(hits)} hits)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="antennalab",
@@ -152,6 +163,20 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("--scan-b", required=True, help="Scan B CSV path")
     compare_parser.add_argument("--out-csv", help="Output compare CSV path")
     compare_parser.set_defaults(func=cmd_compare)
+
+    alerts_parser = subparsers.add_parser("alerts", help="Run alert rules on a scan")
+    alerts_parser.add_argument("--scan-csv", required=True, help="Input scan CSV path")
+    alerts_parser.add_argument(
+        "--rules",
+        default="config/alerts.csv",
+        help="Alert rules CSV (freq_hz,threshold_db)",
+    )
+    alerts_parser.add_argument(
+        "--out-log",
+        default="data/reports/alerts.csv",
+        help="Output alerts CSV path",
+    )
+    alerts_parser.set_defaults(func=cmd_alerts)
 
     return parser
 
