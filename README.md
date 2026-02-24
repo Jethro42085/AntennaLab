@@ -126,3 +126,5 @@ antennalab scan --bookmarks-file config/bookmarks.csv
 ```
 
 Report pack summary includes bookmark matches (if present in scan_report.json).
+
+Report packs now include a `README.txt` with a quick file list and tip.

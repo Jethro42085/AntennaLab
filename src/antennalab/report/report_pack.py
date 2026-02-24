@@ -24,6 +24,22 @@ def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _write_readme(path: Path, files: list[str], summary_path: Path) -> None:
+    lines = [
+        "AntennaLab Report Pack",
+        "",
+        "Files:",
+    ]
+    lines += [f"- {name}" for name in files]
+    lines += [
+        "",
+        f"Summary: {summary_path.name}",
+        "",
+        "Tip: open waterfall.html in a browser if present.",
+    ]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def build_report_pack(
     *,
     session_name: str | None,
@@ -54,10 +70,12 @@ def build_report_pack(
     copied += int(copy_if_exists(reports_dir / "bookmarks.json", pack_dir / "bookmarks.json"))
     copied += int(copy_if_exists(waterfalls_dir / "waterfall.csv", pack_dir / "waterfall.csv"))
 
+    files = sorted(p.name for p in pack_dir.iterdir() if p.is_file())
+
     summary = {
         "session": session,
         "created_at": timestamp,
-        "files": sorted(p.name for p in pack_dir.iterdir() if p.is_file()),
+        "files": files,
     }
 
     scan_report = _read_json(pack_dir / "scan_report.json")
@@ -72,6 +90,9 @@ def build_report_pack(
 
     summary_path = pack_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    copied += 1
+
+    _write_readme(pack_dir / "README.txt", files, summary_path)
     copied += 1
 
     return pack_dir, copied

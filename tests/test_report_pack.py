@@ -29,8 +29,9 @@ def test_report_pack(tmp_path: Path) -> None:
         out_dir=out,
     )
 
-    assert copied >= 3
+    assert copied >= 4
     assert (pack_dir / "scan.csv").exists()
     assert (pack_dir / "scan_report.json").exists()
     assert (pack_dir / "waterfall.csv").exists()
     assert (pack_dir / "summary.json").exists()
+    assert (pack_dir / "README.txt").exists()
