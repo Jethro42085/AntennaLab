@@ -161,3 +161,6 @@ Monitor summary plot:
 ```bash
 antennalab monitor-plot --in-json data/reports/monitor_quick/summary.json --out-png data/reports/monitor_quick/monitor.png
 ```
+
+Report pack HTML index:
+`index.html` is generated inside each report pack with image thumbnails and links.

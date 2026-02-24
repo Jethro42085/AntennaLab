@@ -35,6 +35,7 @@ from antennalab.instruments.rtlsdr import RTLSDRPlugin
 from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sweep_stats_csv
 from antennalab.report.plot import plot_scan_csv
 from antennalab.report.report_pack import build_report_pack
+from antennalab.report.report_pack_html import write_report_pack_html
 from antennalab.report.run_report import write_run_report
 from antennalab.report.monitor_plot import plot_monitor_summary
 from antennalab.report.waterfall_plot import plot_waterfall_csv
@@ -452,7 +453,9 @@ def cmd_report_pack(args: argparse.Namespace) -> int:
         waterfalls_dir=waterfalls_dir,
         out_dir=out_dir,
     )
+    html_path = write_report_pack_html(pack_dir)
     print(f"Report pack: {pack_dir} ({copied} file(s) copied)")
+    print(f"Report index: {html_path}")
     if copied == 0:
         print("Warning: report pack is empty. Run scans or plots first.")
     return 0
