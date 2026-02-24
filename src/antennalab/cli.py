@@ -232,6 +232,18 @@ def cmd_baseline_tag(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_list(args: argparse.Namespace) -> int:
+    base_dir = _resolve_base_dir(load_config(args.config)[1])
+    profiles = load_profiles(_profiles_path(base_dir))
+    if not profiles:
+        print("No baseline profiles found")
+        return 0
+    for profile in profiles:
+        notes = f" - {profile.notes}" if profile.notes else ""
+        print(f"{profile.tag}: {profile.csv_path}{notes}")
+    return 0
+
+
 def cmd_baseline_apply(args: argparse.Namespace) -> int:
     scan = scan_from_csv(args.scan_csv)
     baseline = load_baseline(args.baseline_csv)
@@ -560,6 +572,11 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_tag_parser.add_argument("--csv-path", required=True, help="Baseline CSV path")
     baseline_tag_parser.add_argument("--notes", help="Notes")
     baseline_tag_parser.set_defaults(func=cmd_baseline_tag)
+
+    baseline_list_parser = subparsers.add_parser(
+        "baseline-list", help="List baseline profiles"
+    )
+    baseline_list_parser.set_defaults(func=cmd_baseline_list)
 
     baseline_parser = subparsers.add_parser(
         "baseline-apply", help="Apply baseline to an existing scan CSV"

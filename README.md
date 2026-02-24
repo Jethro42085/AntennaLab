@@ -146,3 +146,8 @@ antennalab baseline-capture --mode sim --out-csv data/scans/baseline_night.csv
 antennalab baseline-tag --tag night --csv-path data/scans/baseline_night.csv --notes "quiet"
 antennalab scan --mode sim --baseline-tag night
 ```
+
+List baseline profiles:
+```bash
+antennalab baseline-list
+```
