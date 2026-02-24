@@ -68,3 +68,8 @@ Waterfall capture:
 antennalab waterfall --mode sim --slices 10 --interval-ms 100
 ```
 Output CSV columns: `timestamp,slice_index,freq_hz,avg_db,max_db`.
+
+Plot waterfall CSV:
+```bash
+antennalab plot-waterfall --in-csv data/waterfalls/waterfall.csv --out-png data/reports/waterfall.png
+```

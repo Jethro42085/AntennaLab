@@ -16,6 +16,7 @@ from antennalab.instruments.rtlsdr import RTLSDRPlugin
 from antennalab.report.export_csv import scan_from_csv, write_scan_csv, write_sweep_stats_csv
 from antennalab.report.plot import plot_scan_csv
 from antennalab.report.run_report import write_run_report
+from antennalab.report.waterfall_plot import plot_waterfall_csv
 
 
 def cmd_info(args: argparse.Namespace) -> int:
@@ -223,6 +224,12 @@ def cmd_waterfall(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plot_waterfall(args: argparse.Namespace) -> int:
+    output_path = plot_waterfall_csv(args.in_csv, args.out_png)
+    print(f"Waterfall image: {output_path}")
+    return 0
+
+
 def cmd_noise_floor(args: argparse.Namespace) -> int:
     config, _ = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
@@ -357,6 +364,17 @@ def build_parser() -> argparse.ArgumentParser:
     waterfall_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
     waterfall_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
     waterfall_parser.set_defaults(func=cmd_waterfall)
+
+    waterfall_plot_parser = subparsers.add_parser(
+        "plot-waterfall", help="Plot a waterfall CSV to PNG"
+    )
+    waterfall_plot_parser.add_argument("--in-csv", required=True, help="Input waterfall CSV")
+    waterfall_plot_parser.add_argument(
+        "--out-png",
+        default="data/reports/waterfall.png",
+        help="Output PNG path",
+    )
+    waterfall_plot_parser.set_defaults(func=cmd_plot_waterfall)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")
     noise_parser.add_argument("--in-csv", required=True, help="Input scan CSV path")
