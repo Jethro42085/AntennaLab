@@ -358,7 +358,12 @@ def _resolve_path(base: Path, path: Path) -> Path:
 def cmd_report_pack(args: argparse.Namespace) -> int:
     config, config_path = load_config(args.config)
     output_cfg = config.get("output", {}) if isinstance(config, dict) else {}
-    base_dir = config_path.parent if config_path else Path.cwd()
+    if config_path:
+        base_dir = config_path.parent
+        if base_dir.name == "config":
+            base_dir = base_dir.parent
+    else:
+        base_dir = Path.cwd()
 
     scans_dir = _resolve_path(base_dir, Path(output_cfg.get("scans_dir", "data/scans")))
     reports_dir = _resolve_path(base_dir, Path(output_cfg.get("reports_dir", "data/reports")))
