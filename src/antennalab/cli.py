@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 
 from antennalab import __version__
 from antennalab.analysis.alerts import AlertEngine, load_alert_rules, write_alert_hits
 from antennalab.analysis.calibration import apply_baseline, load_baseline
+from antennalab.analysis.calibration_profiles import (
+    BaselineProfile,
+    get_profile,
+    upsert_profile,
+)
 from antennalab.analysis.compare import compare_to_csv
 from antennalab.analysis.monitor import MonitorSettings, run_monitor
 from antennalab.analysis.noise_floor import estimate_noise_floor
@@ -70,6 +76,10 @@ def _resolve_base_dir(config_path: Path | None) -> Path:
             base_dir = base_dir.parent
         return base_dir
     return Path.cwd()
+
+
+def _profiles_path(base_dir: Path) -> Path:
+    return base_dir / "config" / "baseline_profiles.json"
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
@@ -158,6 +168,13 @@ def cmd_scan(args: argparse.Namespace) -> int:
             )
 
     baseline_csv = getattr(args, "baseline_csv", None)
+    baseline_tag = getattr(args, "baseline_tag", None)
+    if baseline_tag:
+        profile = get_profile(_profiles_path(base_dir), baseline_tag)
+        if profile is None:
+            raise SystemExit(f"Baseline tag not found: {baseline_tag}")
+        baseline_csv = profile.csv_path
+
     if baseline_csv:
         baseline = load_baseline(baseline_csv)
         scan = apply_baseline(scan, baseline)
@@ -199,6 +216,20 @@ def cmd_baseline_capture(args: argparse.Namespace) -> int:
         scans_dir = Path(output_cfg.get("scans_dir", "data/scans"))
         args.out_csv = str(scans_dir / "baseline.csv")
     return cmd_scan(args)
+
+
+def cmd_baseline_tag(args: argparse.Namespace) -> int:
+    base_dir = _resolve_base_dir(load_config(args.config)[1])
+    profiles_path = _profiles_path(base_dir)
+    profile = BaselineProfile(
+        tag=args.tag,
+        csv_path=args.csv_path,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        notes=args.notes,
+    )
+    upsert_profile(profiles_path, profile)
+    print(f"Baseline tag saved: {args.tag} -> {args.csv_path}")
+    return 0
 
 
 def cmd_baseline_apply(args: argparse.Namespace) -> int:
@@ -487,6 +518,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--out-csv", help="Output CSV path")
     scan_parser.add_argument("--out-json", help="Output JSON run report path")
     scan_parser.add_argument("--baseline-csv", help="Baseline scan CSV to subtract")
+    scan_parser.add_argument("--baseline-tag", help="Baseline tag to apply")
     scan_parser.add_argument("--sweep-stats-csv", help="Output sweep stats CSV path")
     scan_parser.add_argument("--bookmarks-file", default="config/bookmarks.csv", help="Bookmarks CSV file")
     scan_parser.add_argument("--antenna", help="Antenna profile tag")
@@ -520,6 +552,14 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_capture_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
     baseline_capture_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
     baseline_capture_parser.set_defaults(func=cmd_baseline_capture)
+
+    baseline_tag_parser = subparsers.add_parser(
+        "baseline-tag", help="Tag a baseline CSV for later use"
+    )
+    baseline_tag_parser.add_argument("--tag", required=True, help="Tag name")
+    baseline_tag_parser.add_argument("--csv-path", required=True, help="Baseline CSV path")
+    baseline_tag_parser.add_argument("--notes", help="Notes")
+    baseline_tag_parser.set_defaults(func=cmd_baseline_tag)
 
     baseline_parser = subparsers.add_parser(
         "baseline-apply", help="Apply baseline to an existing scan CSV"

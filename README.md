@@ -139,3 +139,10 @@ Monitor with report pack:
 ```bash
 antennalab monitor --mode sim --interval-sec 5 --iterations 3 --session quick --report-pack
 ```
+
+Baseline profiles (tags):
+```bash
+antennalab baseline-capture --mode sim --out-csv data/scans/baseline_night.csv
+antennalab baseline-tag --tag night --csv-path data/scans/baseline_night.csv --notes "quiet"
+antennalab scan --mode sim --baseline-tag night
+```
