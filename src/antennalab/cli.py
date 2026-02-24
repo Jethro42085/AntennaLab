@@ -95,9 +95,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
         dwell_ms = args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)
         missing_db = device_cfg.get("missing_db", -120.0)
 
-    sweep_stats_path = getattr(args, "sweep_stats_csv", None)
-    if sweep_stats_path:
-        scan, sweep_stats = plugin.scan_real_with_sweep_stats(
+        sweep_stats_path = getattr(args, "sweep_stats_csv", None)
+        if sweep_stats_path:
+            scan, sweep_stats = plugin.scan_real_with_sweep_stats(
                 start_hz=float(start_hz),
                 stop_hz=float(stop_hz),
                 bin_hz=float(bin_hz),
