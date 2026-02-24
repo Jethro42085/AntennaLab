@@ -87,3 +87,10 @@ waterfall_plot:
   vmax: -20
 ```
 Command-line flags override config.
+
+Recommended colormaps:
+- viridis (default)
+- plasma
+- magma
+- inferno
+- cividis
