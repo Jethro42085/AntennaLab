@@ -84,7 +84,7 @@ def write_waterfall_html(
     <span class=\"meta\">Data range: {data_min:.2f} to {data_max:.2f}</span>
     <span class=\"meta\">Scale: vmin {vmin:.2f} / vmax {vmax:.2f}</span>
   </div>
-  <canvas id=\"wf\" width=\"{len(freqs)}\" height=\"{len(grid)}\"></canvas>
+    <canvas id=\"wf\" width=\"1200\" height=\"500\"></canvas>
 
   <script>
     const data = {grid};
@@ -94,6 +94,12 @@ def write_waterfall_html(
     paletteSelect.value = '{palette}';
     const canvas = document.getElementById('wf');
     const ctx = canvas.getContext('2d');
+    const dataWidth = data[0].length;
+    const dataHeight = data.length;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = dataWidth;
+    offscreen.height = dataHeight;
+    const offctx = offscreen.getContext('2d');
 
     function clamp(val, min, max) {{
       return Math.max(min, Math.min(max, val));
@@ -135,11 +141,11 @@ def write_waterfall_html(
     }}
 
     function render() {{
-      const img = ctx.createImageData(canvas.width, canvas.height);
+      const img = offctx.createImageData(dataWidth, dataHeight);
       let idx = 0;
-      for (let y = 0; y < canvas.height; y++) {{
+      for (let y = 0; y < dataHeight; y++) {{
         const row = data[y];
-        for (let x = 0; x < canvas.width; x++) {{
+        for (let x = 0; x < dataWidth; x++) {{
           const val = row[x];
           const [r, g, b] = colorFor(val, paletteSelect.value);
           img.data[idx++] = r;
@@ -148,7 +154,10 @@ def write_waterfall_html(
           img.data[idx++] = 255;
         }}
       }}
-      ctx.putImageData(img, 0, 0);
+      offctx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
     }}
 
     paletteSelect.addEventListener('change', render);
