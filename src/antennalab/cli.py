@@ -76,6 +76,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
         gain_db = args.gain if args.gain is not None else device_cfg.get("gain_db", "auto")
         fft_size = args.fft_size or device_cfg.get("fft_size", 4096)
         step_hz = args.step_hz if args.step_hz is not None else device_cfg.get("step_hz")
+        sweeps = args.sweeps or device_cfg.get("sweeps", 3)
+        dwell_ms = args.dwell_ms if args.dwell_ms is not None else device_cfg.get("dwell_ms", 0)
         missing_db = device_cfg.get("missing_db", -120.0)
 
         scan = plugin.scan_real(
@@ -86,6 +88,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
             gain_db=gain_db,
             fft_size=int(fft_size),
             step_hz=float(step_hz) if step_hz is not None else None,
+            sweeps=int(sweeps),
+            dwell_ms=int(dwell_ms),
             missing_db=float(missing_db),
             antenna_tag=args.antenna,
             location_tag=args.location,
@@ -174,6 +178,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--gain", help="RTL-SDR gain (auto or dB)")
     scan_parser.add_argument("--fft-size", type=int, help="FFT size per sweep")
     scan_parser.add_argument("--step-hz", type=float, help="Sweep step size (Hz)")
+    scan_parser.add_argument("--sweeps", type=int, help="Number of sweeps to average")
+    scan_parser.add_argument("--dwell-ms", type=int, help="Delay between center steps (ms)")
     scan_parser.set_defaults(func=cmd_scan)
 
     noise_parser = subparsers.add_parser("noise-floor", help="Estimate noise floor")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable
+import time
 
 from antennalab.analysis.spectrum import ScanSimulator
 from antennalab.core.models import ScanBin, ScanResult
@@ -60,6 +60,8 @@ class RTLSDRPlugin:
         gain_db: float | str,
         fft_size: int,
         step_hz: float | None,
+        sweeps: int,
+        dwell_ms: int,
         missing_db: float,
         antenna_tag: str | None,
         location_tag: str | None,
@@ -80,6 +82,10 @@ class RTLSDRPlugin:
             raise ValueError("sample_rate_hz must be positive")
         if fft_size <= 0:
             raise ValueError("fft_size must be positive")
+        if sweeps <= 0:
+            raise ValueError("sweeps must be positive")
+        if dwell_ms < 0:
+            raise ValueError("dwell_ms must be >= 0")
 
         step = step_hz or sample_rate_hz * 0.8
         n_bins = int(math.ceil((stop_hz - start_hz) / bin_hz))
@@ -96,27 +102,32 @@ class RTLSDRPlugin:
                 sdr.gain = float(gain_db)
 
             window = np.hanning(fft_size)
-            center = start_hz + sample_rate_hz / 2.0
-            while center < stop_hz:
-                sdr.center_freq = center
-                samples = sdr.read_samples(fft_size)
-                spectrum = np.fft.fftshift(np.fft.fft(samples * window))
-                power = 20 * np.log10(np.abs(spectrum) + 1e-12)
-                freqs = np.fft.fftshift(np.fft.fftfreq(fft_size, d=1.0 / sample_rate_hz))
-                freqs = freqs + center
+            for _ in range(sweeps):
+                center = start_hz + sample_rate_hz / 2.0
+                while center < stop_hz:
+                    sdr.center_freq = center
+                    samples = sdr.read_samples(fft_size)
+                    spectrum = np.fft.fftshift(np.fft.fft(samples * window))
+                    power = 20 * np.log10(np.abs(spectrum) + 1e-12)
+                    freqs = np.fft.fftshift(
+                        np.fft.fftfreq(fft_size, d=1.0 / sample_rate_hz)
+                    )
+                    freqs = freqs + center
 
-                for freq_hz, power_db in zip(freqs, power):
-                    if freq_hz < start_hz or freq_hz >= stop_hz:
-                        continue
-                    idx = int((freq_hz - start_hz) // bin_hz)
-                    if idx < 0 or idx >= n_bins:
-                        continue
-                    sum_bins[idx] += float(power_db)
-                    count_bins[idx] += 1
-                    if power_db > max_bins[idx]:
-                        max_bins[idx] = float(power_db)
+                    for freq_hz, power_db in zip(freqs, power):
+                        if freq_hz < start_hz or freq_hz >= stop_hz:
+                            continue
+                        idx = int((freq_hz - start_hz) // bin_hz)
+                        if idx < 0 or idx >= n_bins:
+                            continue
+                        sum_bins[idx] += float(power_db)
+                        count_bins[idx] += 1
+                        if power_db > max_bins[idx]:
+                            max_bins[idx] = float(power_db)
 
-                center += step
+                    if dwell_ms:
+                        time.sleep(dwell_ms / 1000.0)
+                    center += step
         finally:
             sdr.close()
 

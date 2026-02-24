@@ -27,3 +27,7 @@ Simulated scan (no hardware):
 ```bash
 antennalab scan --mode sim --seed 42
 ```
+
+Real scan tuning:
+- `--sweeps N` averages N full sweeps across the band (default 3)
+- `--dwell-ms MS` waits between center steps (default 0)

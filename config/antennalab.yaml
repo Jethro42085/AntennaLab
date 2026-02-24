@@ -4,6 +4,8 @@ device:
   gain_db: auto
   fft_size: 4096
   step_hz: null
+  sweeps: 3
+  dwell_ms: 0
   missing_db: -120
 
 scan:
